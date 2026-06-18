@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Dashboard STATA — Data penggunaan per prodi dan kategori user">
+  <title>STATA — Dashboard E-Resources PKN STAN</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-layout">
+    <button class="mobile-menu-btn" id="mobile-menu-btn">
+      <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none">
+        <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+    <div class="mobile-overlay" id="mobile-overlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <h1>STATA</h1>
+        <p class="page-description">
+          Data penggunaan aplikasi STATA per program studi, kategori user, dan kebutuhan penggunaan.
+        </p>
+      </div>
+
+      <!-- API Config -->
+      <div class="config-panel" id="config-panel">
+        <div class="config-title">⚙️ Konfigurasi Sumber Data</div>
+        <div class="config-input-group">
+          <input type="text" id="api-url-input" placeholder="Paste URL Google Apps Script di sini...">
+          <button class="config-btn" id="config-btn" onclick="saveAndFetch()">Hubungkan</button>
+        </div>
+        <div class="config-hint">Masukkan URL deployment Apps Script. Lihat <a href="tutorial/tutorial.html">tutorial</a> untuk panduan.</div>
+      </div>
+
+      <!-- Loading -->
+      <div class="loading-spinner" id="loading" style="display:none;">
+        <div class="spinner"></div>
+        <span>Mengambil data dari Google Sheets...</span>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid" id="stata-stats" style="display:none;">
+        <div class="stat-card">
+          <div class="stat-header"><div class="stat-icon emerald">👥</div></div>
+          <div class="stat-value" id="stata-total-users">0</div>
+          <div class="stat-label">Total Pengguna</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header"><div class="stat-icon indigo">🎓</div></div>
+          <div class="stat-value" id="stata-total-prodi">0</div>
+          <div class="stat-label">Jumlah Prodi/Unit</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header"><div class="stat-icon cyan">👨‍🏫</div></div>
+          <div class="stat-value" id="stata-dosen-count">0</div>
+          <div class="stat-label">Dosen</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header"><div class="stat-icon amber">👨‍🎓</div></div>
+          <div class="stat-value" id="stata-mhs-count">0</div>
+          <div class="stat-label">Mahasiswa</div>
+        </div>
+      </div>
+
+      <!-- Filter -->
+      <div class="filter-bar" id="stata-filters" style="display:none;">
+        <div class="filter-group">
+          <span class="filter-label">Tahun</span>
+          <select class="filter-select" id="stata-filter-year"><option value="all">Semua</option></select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Prodi/Unit</span>
+          <select class="filter-select" id="stata-filter-prodi"><option value="all">Semua</option></select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Kategori</span>
+          <select class="filter-select" id="stata-filter-category">
+            <option value="all">Semua</option>
+            <option value="Dosen">Dosen</option>
+            <option value="Mahasiswa">Mahasiswa</option>
+            <option value="Lainnya">Lainnya</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="charts-grid" id="stata-charts" style="display:none;">
+        <div class="chart-card full-width">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Penggunaan per Bulan</div>
+              <div class="chart-subtitle">Tren periodik penggunaan STATA</div>
+            </div>
+          </div>
+          <div class="chart-container" style="height:320px;">
+            <canvas id="chart-stata-monthly"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Penggunaan per Prodi/Unit</div>
+              <div class="chart-subtitle">Distribusi pengguna berdasarkan prodi</div>
+            </div>
+          </div>
+          <div class="chart-container" style="height:350px;">
+            <canvas id="chart-stata-prodi"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Kategori Pengguna</div>
+              <div class="chart-subtitle">Dosen vs Mahasiswa vs Lainnya</div>
+            </div>
+          </div>
+          <div class="chart-container" style="height:350px;">
+            <canvas id="chart-stata-category"></canvas>
+          </div>
+        </div>
+        <div class="chart-card full-width">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Kebutuhan Penggunaan STATA</div>
+              <div class="chart-subtitle">Top 10 kebutuhan penggunaan</div>
+            </div>
+          </div>
+          <div class="chart-container" style="height:350px;">
+            <canvas id="chart-stata-need"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-card" id="stata-table-card" style="display:none;">
+        <div class="table-header">
+          <div class="table-title">Data Pengguna STATA</div>
+        </div>
+        <div class="table-wrapper" style="max-height:500px; overflow-y:auto;">
+          <table class="data-table" id="stata-table">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Nama</th>
+                <th>NIP/NIM/NIK</th>
+                <th>Prodi/Unit</th>
+                <th>Kebutuhan</th>
+                <th>Kategori</th>
+              </tr>
+            </thead>
+            <tbody id="stata-table-body"></tbody>
+          </table>
+        </div>
+        <div class="table-pagination">
+          <span id="stata-page-info"></span>
+          <div class="pagination-buttons" id="stata-page-buttons"></div>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state" id="stata-empty" style="display:none;">
+        <div class="empty-icon">💻</div>
+        <div class="empty-title">Data STATA Belum Tersedia</div>
+        <div class="empty-desc">Masukkan URL Apps Script di atas dan klik "Hubungkan" untuk mengambil data dari Google Sheets.</div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/stata.js"></script>
+</body>
+</html>

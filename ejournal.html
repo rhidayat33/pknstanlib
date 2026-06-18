@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Dashboard E-Journal Emerald Insight — Perpustakaan PKN STAN">
+  <title>E-Journal — Dashboard E-Resources PKN STAN</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-layout">
+    <button class="mobile-menu-btn" id="mobile-menu-btn">
+      <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none">
+        <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+    <div class="mobile-overlay" id="mobile-overlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <h1>E-Journal</h1>
+        <p class="page-description">
+          Data penggunaan jurnal elektronik Emerald Insight yang dilanggan oleh PKN STAN. Hubungkan dengan Google Apps Script untuk mengambil data COUNTER report secara otomatis.
+        </p>
+      </div>
+
+      <!-- API Config -->
+      <div class="config-panel" id="config-panel">
+        <div class="config-title">⚙️ Konfigurasi Sumber Data</div>
+        <div class="config-input-group">
+          <input type="text" id="api-url-input" placeholder="Paste URL Google Apps Script di sini...">
+          <button class="config-btn" id="config-btn" onclick="saveAndFetch()">Hubungkan</button>
+        </div>
+        <div class="config-hint">Masukkan URL deployment Apps Script. Lihat <a href="tutorial/tutorial.html">tutorial</a> untuk panduan.</div>
+      </div>
+
+      <!-- Loading -->
+      <div class="loading-spinner" id="loading" style="display:none;">
+        <div class="spinner"></div>
+        <span>Mengambil data E-Journal dari Google Sheets...</span>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid" id="ej-stats" style="display:none;">
+        <div class="stat-card">
+          <div class="stat-header">
+            <div class="stat-icon indigo">📊</div>
+          </div>
+          <div class="stat-value" id="ej-total-access">0</div>
+          <div class="stat-label">Total Akses</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header">
+            <div class="stat-icon cyan">📚</div>
+          </div>
+          <div class="stat-value" id="ej-total-journals">0</div>
+          <div class="stat-label">Jumlah Jurnal</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header">
+            <div class="stat-icon emerald">📈</div>
+          </div>
+          <div class="stat-value" id="ej-avg-access">0</div>
+          <div class="stat-label">Rata-rata Akses/Jurnal</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header">
+            <div class="stat-icon amber">🏆</div>
+          </div>
+          <div class="stat-value" id="ej-top-journal" style="font-size:14px; line-height:1.4;">—</div>
+          <div class="stat-label">Jurnal Paling Populer</div>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar" id="ej-filters" style="display:none;">
+        <div class="filter-group">
+          <span class="filter-label">Tahun</span>
+          <select class="filter-select" id="filter-year">
+            <option value="all">Semua Tahun</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Metrik</span>
+          <select class="filter-select" id="filter-metric">
+            <option value="Total_Item_Requests">Total Item Requests</option>
+            <option value="Unique_Item_Requests">Unique Item Requests</option>
+          </select>
+        </div>
+        <div class="search-wrapper">
+          <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" class="search-input" id="filter-search" placeholder="Cari jurnal...">
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="charts-grid" id="ej-charts" style="display:none;">
+        <div class="chart-card full-width">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Tren Penggunaan Bulanan</div>
+              <div class="chart-subtitle">Total akses E-Journal per bulan</div>
+            </div>
+          </div>
+          <div class="chart-container" style="height:320px;">
+            <canvas id="chart-ej-monthly"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Top 20 Jurnal</div>
+              <div class="chart-subtitle">Berdasarkan total akses</div>
+            </div>
+          </div>
+          <div class="chart-container" style="height:500px;">
+            <canvas id="chart-ej-top"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Total vs Unique Requests</div>
+              <div class="chart-subtitle">Perbandingan metrik akses</div>
+            </div>
+          </div>
+          <div class="chart-container" style="height:320px;">
+            <canvas id="chart-ej-metrics"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Table -->
+      <div class="table-card" id="ej-table-card" style="display:none;">
+        <div class="table-header">
+          <div class="table-title">Data Jurnal</div>
+        </div>
+        <div class="table-wrapper" style="max-height:500px; overflow-y:auto;">
+          <table class="data-table" id="ej-table">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Judul Jurnal</th>
+                <th>Total Requests</th>
+                <th>Unique Requests</th>
+              </tr>
+            </thead>
+            <tbody id="ej-table-body"></tbody>
+          </table>
+        </div>
+        <div class="table-pagination" id="ej-pagination">
+          <span id="ej-page-info"></span>
+          <div class="pagination-buttons" id="ej-page-buttons"></div>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state" id="ej-empty" style="display:none;">
+        <div class="empty-icon">📚</div>
+        <div class="empty-title">Data E-Journal Belum Tersedia</div>
+        <div class="empty-desc">Masukkan URL Apps Script di atas dan klik "Hubungkan" untuk mengambil data COUNTER report dari Google Sheets.</div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/ejournal.js"></script>
+</body>
+</html>

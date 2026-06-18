@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Tutorial penggunaan Dashboard E-Resources PKN STAN">
+  <title>Tutorial — Dashboard E-Resources PKN STAN</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .tutorial-content { max-width: 800px; }
+    .tutorial-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      margin-bottom: 24px;
+      animation: fadeInUp 0.5s ease;
+    }
+    .tutorial-section h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .tutorial-section h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--accent-indigo);
+      margin: 20px 0 10px;
+    }
+    .tutorial-section p, .tutorial-section li {
+      font-size: 14px;
+      line-height: 1.8;
+      color: var(--text-secondary);
+    }
+    .tutorial-section ol, .tutorial-section ul {
+      padding-left: 24px;
+      margin: 8px 0;
+    }
+    .tutorial-section li {
+      margin-bottom: 8px;
+    }
+    .code-block {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin: 12px 0;
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 13px;
+      color: var(--accent-emerald);
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .step-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--gradient-primary);
+      color: white;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .step-item {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .step-item .step-content {
+      flex: 1;
+    }
+    .step-item .step-content strong {
+      color: var(--text-primary);
+    }
+    .highlight-box {
+      background: rgba(99, 102, 241, 0.08);
+      border-left: 3px solid var(--accent-indigo);
+      padding: 12px 16px;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      margin: 12px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .warning-box {
+      background: rgba(245, 158, 11, 0.08);
+      border-left: 3px solid var(--accent-amber);
+      padding: 12px 16px;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      margin: 12px 0;
+      font-size: 13px;
+      color: var(--accent-amber);
+    }
+    .toc {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .toc h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+    .toc a {
+      display: block;
+      padding: 6px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      transition: color var(--transition-fast);
+    }
+    .toc a:hover { color: var(--accent-indigo); }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <button class="mobile-menu-btn" id="mobile-menu-btn">
+      <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none">
+        <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+    <div class="mobile-overlay" id="mobile-overlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <h1>Tutorial Penggunaan</h1>
+        <p class="page-description">
+          Panduan lengkap untuk mengkonfigurasi dan menggunakan Dashboard E-Resources PKN STAN.
+        </p>
+      </div>
+
+      <div class="tutorial-content">
+
+        <!-- Table of Contents -->
+        <div class="toc">
+          <h3>📋 Daftar Isi</h3>
+          <a href="#setup-lseg">1. Setup Apps Script — LSEG</a>
+          <a href="#setup-stata">2. Setup Apps Script — STATA</a>
+          <a href="#upload-ejournal">3. Upload Data E-Journal</a>
+          <a href="#penggunaan">4. Cara Menggunakan Dashboard</a>
+          <a href="#update-data">5. Update Data Periodik</a>
+          <a href="#troubleshooting">6. Troubleshooting</a>
+        </div>
+
+        <!-- Section 1: Setup LSEG -->
+        <div class="tutorial-section" id="setup-lseg">
+          <h2>📊 1. Setup Apps Script — LSEG</h2>
+          <p>Langkah-langkah menghubungkan Google Sheet LSEG dengan dashboard:</p>
+
+          <div class="step-item">
+            <span class="step-badge">1</span>
+            <div class="step-content">
+              <strong>Buka Google Sheet LSEG</strong>
+              <p>Buka spreadsheet LSEG yang berisi data pengguna di Google Sheets.</p>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <span class="step-badge">2</span>
+            <div class="step-content">
+              <strong>Buka Apps Script Editor</strong>
+              <p>Klik menu <strong>Extensions</strong> → <strong>Apps Script</strong>. Editor kode akan terbuka di tab baru.</p>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <span class="step-badge">3</span>
+            <div class="step-content">
+              <strong>Paste Kode Apps Script</strong>
+              <p>Hapus semua kode bawaan di editor, lalu salin dan tempel kode berikut:</p>
+              <div class="highlight-box">
+                📄 File kode: <strong>apps-script/lseg-apps-script.js</strong><br>
+                Buka file tersebut di folder dashboard, salin seluruh isinya, dan paste di editor Apps Script.
+              </div>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <span class="step-badge">4</span>
+            <div class="step-content">
+              <strong>Deploy sebagai Web App</strong>
+              <ol>
+                <li>Klik tombol <strong>"Deploy"</strong> (kanan atas) → <strong>"New deployment"</strong></li>
+                <li>Klik ikon ⚙️ di sebelah "Select type" → pilih <strong>"Web app"</strong></li>
+                <li>Isi konfigurasi:
+                  <ul>
+                    <li><strong>Description:</strong> LSEG API</li>
+                    <li><strong>Execute as:</strong> Me (akun Anda)</li>
+                    <li><strong>Who has access:</strong> Anyone</li>
+                  </ul>
+                </li>
+                <li>Klik <strong>"Deploy"</strong></li>
+                <li>Klik <strong>"Authorize access"</strong> jika diminta, lalu pilih akun Google Anda</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <span class="step-badge">5</span>
+            <div class="step-content">
+              <strong>Copy URL Deployment</strong>
+              <p>Setelah deploy berhasil, akan muncul URL seperti:</p>
+              <div class="code-block">https://script.google.com/macros/s/AKfycb.../exec</div>
+              <p>Salin URL tersebut.</p>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <span class="step-badge">6</span>
+            <div class="step-content">
+              <strong>Paste URL di Dashboard</strong>
+              <p>Buka halaman <strong>LSEG</strong> di dashboard, paste URL pada kolom "Konfigurasi Sumber Data", lalu klik <strong>"Hubungkan"</strong>.</p>
+            </div>
+          </div>
+
+          <div class="warning-box">
+            ⚠️ <strong>Penting:</strong> Jika Anda mengupdate kode Apps Script, Anda perlu membuat <strong>deployment baru</strong> (bukan edit deployment lama) agar perubahan berlaku.
+          </div>
+        </div>
+
+        <!-- Section 2: Setup STATA -->
+        <div class="tutorial-section" id="setup-stata">
+          <h2>💻 2. Setup Apps Script — STATA</h2>
+          <p>Langkahnya sama persis seperti LSEG, tetapi menggunakan file kode yang berbeda:</p>
+
+          <div class="highlight-box">
+            📄 File kode: <strong>apps-script/stata-apps-script.js</strong><br>
+            Buka Google Sheet STATA → Extensions → Apps Script → paste kode dari file di atas → Deploy sebagai Web App.
+          </div>
+
+          <p>Setelah mendapatkan URL deployment, paste di halaman <strong>STATA</strong> pada dashboard.</p>
+        </div>
+
+        <!-- Section 3: Upload E-Journal -->
+        <div class="tutorial-section" id="upload-ejournal">
+          <h2>📚 3. Upload Data E-Journal</h2>
+          <p>Data E-Journal menggunakan format COUNTER report dari Emerald Insight.</p>
+
+          <div class="step-item">
+            <span class="step-badge">1</span>
+            <div class="step-content">
+              <strong>Siapkan File COUNTER Report</strong>
+              <p>File harus berformat <strong>.xlsx</strong> atau <strong>.csv</strong> dengan format COUNTER 5 (TR_J1). File yang diberikan oleh Emerald Insight biasanya sudah sesuai format ini.</p>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <span class="step-badge">2</span>
+            <div class="step-content">
+              <strong>Buka Halaman E-Journal</strong>
+              <p>Navigasi ke halaman <strong>E-Journal</strong> melalui sidebar.</p>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <span class="step-badge">3</span>
+            <div class="step-content">
+              <strong>Upload File</strong>
+              <p>Drag & drop file ke area upload, atau klik <strong>"Pilih File"</strong> untuk memilih file dari komputer Anda.</p>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <span class="step-badge">4</span>
+            <div class="step-content">
+              <strong>Data Otomatis Tampil</strong>
+              <p>Setelah file diproses, grafik dan tabel akan otomatis muncul. Data disimpan di browser (localStorage) sehingga tetap tersedia saat Anda membuka dashboard kembali.</p>
+            </div>
+          </div>
+
+          <div class="highlight-box">
+            💡 <strong>Tips:</strong> Untuk memperbarui data, cukup upload file baru. Data lama akan otomatis digantikan.
+          </div>
+        </div>
+
+        <!-- Section 4: Cara Penggunaan -->
+        <div class="tutorial-section" id="penggunaan">
+          <h2>🖥️ 4. Cara Menggunakan Dashboard</h2>
+
+          <h3>Navigasi</h3>
+          <ul>
+            <li>Gunakan <strong>sidebar</strong> di kiri untuk berpindah antar halaman</li>
+            <li>Pada perangkat mobile, klik ikon <strong>menu (☰)</strong> di kiri atas</li>
+            <li>Halaman <strong>Home</strong> menampilkan ringkasan semua e-resources</li>
+          </ul>
+
+          <h3>Filter Data</h3>
+          <ul>
+            <li><strong>Filter Tahun:</strong> Tampilkan data untuk tahun tertentu</li>
+            <li><strong>Filter Prodi:</strong> Tampilkan data untuk program studi tertentu (LSEG & STATA)</li>
+            <li><strong>Filter Kategori:</strong> Tampilkan data Dosen, Mahasiswa, atau Lainnya</li>
+            <li><strong>Pencarian:</strong> Cari jurnal berdasarkan judul (E-Journal)</li>
+          </ul>
+
+          <h3>Membaca Grafik</h3>
+          <ul>
+            <li><strong>Bar chart:</strong> Menunjukkan perbandingan kuantitas antar kategori</li>
+            <li><strong>Line chart:</strong> Menunjukkan tren dari waktu ke waktu</li>
+            <li><strong>Doughnut chart:</strong> Menunjukkan proporsi/distribusi</li>
+            <li>Arahkan kursor ke grafik untuk melihat detail (tooltip)</li>
+          </ul>
+
+          <h3>Tabel Data</h3>
+          <ul>
+            <li>Tabel menampilkan data detail dengan paginasi</li>
+            <li>Gunakan tombol navigasi di bawah tabel untuk berpindah halaman</li>
+          </ul>
+        </div>
+
+        <!-- Section 5: Update Data -->
+        <div class="tutorial-section" id="update-data">
+          <h2>🔄 5. Update Data Periodik</h2>
+
+          <h3>LSEG & STATA (Otomatis)</h3>
+          <p>Data LSEG dan STATA berasal dari Google Form yang terhubung ke Google Sheets. Setiap ada pengisian form baru, data otomatis masuk ke spreadsheet. Dashboard akan mengambil data terbaru setiap kali dimuat (dengan cache 30 menit).</p>
+          <div class="highlight-box">
+            💡 Untuk memaksa refresh data, hapus cache browser atau buka dashboard di jendela Incognito.
+          </div>
+
+          <h3>E-Journal (Manual)</h3>
+          <p>Data E-Journal perlu diupload manual secara periodik:</p>
+          <ol>
+            <li>Download COUNTER report terbaru dari Emerald Insight</li>
+            <li>Buka halaman E-Journal di dashboard</li>
+            <li>Upload file baru — data lama akan otomatis digantikan</li>
+          </ol>
+        </div>
+
+        <!-- Section 6: Troubleshooting -->
+        <div class="tutorial-section" id="troubleshooting">
+          <h2>🔧 6. Troubleshooting</h2>
+
+          <h3>Data LSEG/STATA tidak muncul</h3>
+          <ul>
+            <li>Pastikan URL Apps Script sudah benar (diawali <code>https://script.google.com/</code>)</li>
+            <li>Pastikan Apps Script sudah di-deploy sebagai Web App dengan akses "Anyone"</li>
+            <li>Coba buka URL Apps Script langsung di browser — harus menampilkan data JSON</li>
+            <li>Jika ada perubahan kode, buat deployment baru</li>
+          </ul>
+
+          <h3>File E-Journal gagal diproses</h3>
+          <ul>
+            <li>Pastikan file berformat <strong>.xlsx</strong> atau <strong>.csv</strong></li>
+            <li>File harus memiliki header "Title" di kolom A (format COUNTER report)</li>
+            <li>Coba buka file di Excel/Google Sheets terlebih dahulu untuk memastikan data terbaca</li>
+          </ul>
+
+          <h3>Grafik tidak tampil</h3>
+          <ul>
+            <li>Pastikan koneksi internet stabil (Chart.js dimuat dari CDN)</li>
+            <li>Coba refresh halaman (Ctrl+F5)</li>
+            <li>Buka Console browser (F12 > Console) untuk melihat error</li>
+          </ul>
+
+          <h3>Hosting di GitHub Pages</h3>
+          <ol>
+            <li>Buat repository baru di GitHub</li>
+            <li>Upload seluruh folder <code>dashboard/</code> ke repository</li>
+            <li>Buka Settings → Pages → Source: Deploy from branch → Branch: main, folder: / (root)</li>
+            <li>Website akan tersedia di <code>https://username.github.io/repo-name/</code></li>
+          </ol>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('sidebar').innerHTML = getSidebarHTML('tutorial');
+      // Fix sidebar links for tutorial subdirectory
+      document.querySelectorAll('.nav-item').forEach(item => {
+        const href = item.getAttribute('href');
+        if (href && !href.startsWith('http') && !href.startsWith('../') && !href.startsWith('tutorial')) {
+          item.setAttribute('href', '../' + href);
+        }
+      });
+      // Fix tutorial link
+      document.querySelectorAll('.nav-item').forEach(item => {
+        const href = item.getAttribute('href');
+        if (href && href.includes('tutorial/tutorial.html')) {
+          item.setAttribute('href', 'tutorial.html');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
