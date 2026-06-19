@@ -369,10 +369,12 @@ const ICONS = {
 
 // ============ Sidebar Template ============
 function getSidebarHTML(activePage) {
+  const isSubdir = window.location.pathname.includes('/tutorial/');
+  const logoPath = isSubdir ? '../logo-perpustakaan.png' : 'logo-perpustakaan.png';
   return `
     <div class="sidebar-header">
       <div class="sidebar-brand">
-        <div class="brand-icon">📊</div>
+        <img src="${logoPath}" alt="Logo Perpustakaan" style="width: 36px; height: 36px; object-fit: contain; flex-shrink: 0;">
         <div class="brand-text">
           <span class="brand-title">E-Resources</span>
           <span class="brand-subtitle">Perpustakaan PKN STAN</span>
