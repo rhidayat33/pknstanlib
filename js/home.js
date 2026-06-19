@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function loadHomeData() {
-  const ejournalData = loadEjournalSummary();
+  const ejournalData = await loadEjournalSummary();
   const lsegData = await loadLSEGSummary();
   const stataData = await loadSTATASummary();
 
@@ -49,40 +49,61 @@ async function loadHomeData() {
   renderUserDistChart(lsegData, stataData);
 }
 
-// ============ Load E-Journal Summary from localStorage ============
-function loadEjournalSummary() {
-  const stored = localStorage.getItem('ejournal_data');
-  if (!stored) return null;
+// ============ Load E-Journal Summary ============
+async function loadEjournalSummary() {
+  const apiUrl = getStoredApiUrl('ejournal');
+  if (!apiUrl) return loadEjournalFromCache();
 
   try {
-    const data = JSON.parse(stored);
-    const journals = data.journals || [];
+    const data = await fetchWithCache(apiUrl, 'ejournal');
+    return processEjournalData(data);
+  } catch (e) {
+    return loadEjournalFromCache();
+  }
+}
 
-    // Calculate total access (Total_Item_Requests only)
-    let totalAccess = 0;
-    const monthlyTotals = {};
-
-    journals.forEach(j => {
-      if (j.metricType === 'Total_Item_Requests') {
-        totalAccess += j.total || 0;
-        if (j.monthly) {
-          Object.entries(j.monthly).forEach(([month, val]) => {
-            monthlyTotals[month] = (monthlyTotals[month] || 0) + val;
-          });
-        }
-      }
-    });
-
-    // Top journals
-    const topJournals = journals
-      .filter(j => j.metricType === 'Total_Item_Requests')
-      .sort((a, b) => (b.total || 0) - (a.total || 0))
-      .slice(0, 10);
-
-    return { totalAccess, monthlyTotals, topJournals, totalJournals: journals.filter(j => j.metricType === 'Total_Item_Requests').length };
+function loadEjournalFromCache() {
+  const cached = localStorage.getItem(API_CACHE_KEY_PREFIX + 'ejournal');
+  if (!cached) return null;
+  try {
+    const { data } = JSON.parse(cached);
+    return processEjournalData(data);
   } catch (e) {
     return null;
   }
+}
+
+function processEjournalData(data) {
+  if (!data || !data.journals || !Array.isArray(data.journals)) return null;
+  const journals = data.journals;
+
+  // Calculate total access (Total_Item_Requests only)
+  let totalAccess = 0;
+  const monthlyTotals = {};
+
+  journals.forEach(j => {
+    if (j.metricType === 'Total_Item_Requests') {
+      totalAccess += j.total || 0;
+      if (j.monthly) {
+        Object.entries(j.monthly).forEach(([month, val]) => {
+          monthlyTotals[month] = (monthlyTotals[month] || 0) + val;
+        });
+      }
+    }
+  });
+
+  // Top journals
+  const topJournals = journals
+    .filter(j => j.metricType === 'Total_Item_Requests')
+    .sort((a, b) => (b.total || 0) - (a.total || 0))
+    .slice(0, 10);
+
+  return {
+    totalAccess,
+    monthlyTotals,
+    topJournals,
+    totalJournals: journals.filter(j => j.metricType === 'Total_Item_Requests').length
+  };
 }
 
 // ============ Load LSEG Summary ============

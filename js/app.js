@@ -3,6 +3,24 @@
    Dashboard E-Resources PKN STAN
    ============================================ */
 
+// ============ Auth Guard ============
+function checkAuth() {
+  const token = sessionStorage.getItem('dashboard_auth_token');
+  if (token !== 'session_pknstanlib_authenticated') {
+    const isSubdir = window.location.pathname.includes('/tutorial/');
+    const loginUrl = isSubdir ? '../login.html' : 'login.html';
+    window.location.href = loginUrl;
+  }
+}
+checkAuth();
+
+function logout() {
+  sessionStorage.removeItem('dashboard_auth_token');
+  const isSubdir = window.location.pathname.includes('/tutorial/');
+  const loginUrl = isSubdir ? '../login.html' : 'login.html';
+  window.location.href = loginUrl;
+}
+
 // ============ Chart.js Global Config ============
 const CHART_COLORS = {
   indigo: 'rgba(99, 102, 241, 1)',
@@ -207,8 +225,22 @@ async function fetchWithCache(url, cacheKey) {
     } catch (e) { /* ignore */ }
   }
 
+  // Append secret token to Apps Script URL if it doesn't already have it
+  let fetchUrl = url;
+  if (url && (url.includes('script.google.com') || url.includes('googleusercontent.com'))) {
+    try {
+      const urlObj = new URL(url);
+      if (!urlObj.searchParams.has('secret')) {
+        urlObj.searchParams.set('secret', 'pknstanlib_secret_key_2026');
+        fetchUrl = urlObj.toString();
+      }
+    } catch (err) {
+      console.error('[Auth] URL parse error:', err);
+    }
+  }
+
   // Fetch
-  const response = await fetch(url);
+  const response = await fetch(fetchUrl);
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const data = await response.json();
 
@@ -287,6 +319,7 @@ const ICONS = {
   settings: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
   menu: `<svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>`,
   check: `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`,
+  logout: `<svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`,
 };
 
 // ============ Sidebar Template ============
@@ -324,6 +357,11 @@ function getSidebarHTML(activePage) {
       <a href="tutorial/tutorial.html" class="nav-item ${activePage === 'tutorial' ? 'active' : ''}">
         <span class="nav-icon">${ICONS.help}</span>
         <span>Tutorial</span>
+      </a>
+      <div class="nav-section-label">Akun</div>
+      <a onclick="logout()" class="nav-item" style="color: var(--accent-rose);">
+        <span class="nav-icon">${ICONS.logout}</span>
+        <span>Keluar</span>
       </a>
     </nav>
     <div class="sidebar-footer">

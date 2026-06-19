@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+  <script>
+    if (sessionStorage.getItem('dashboard_auth_token') !== 'session_pknstanlib_authenticated') {
+      window.location.href = '../login.html';
+    }
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Tutorial penggunaan Dashboard E-Resources PKN STAN">
@@ -224,6 +229,9 @@
           </div>
 
           <div class="warning-box">
+            ⚠️ <strong>Keamanan (Token Lock):</strong> Kode Apps Script kini dilengkapi token pengunci keamanan (<code>pknstanlib_secret_key_2026</code>). Dashboard otomatis menyematkan token ini secara aman saat mengambil data, sehingga pihak luar tidak bisa mengakses data Google Sheet Anda tanpa token ini.
+          </div>
+          <div class="warning-box" style="margin-top: 10px;">
             ⚠️ <strong>Penting:</strong> Jika Anda mengupdate kode Apps Script, Anda perlu membuat <strong>deployment baru</strong> (bukan edit deployment lama) agar perubahan berlaku.
           </div>
         </div>
