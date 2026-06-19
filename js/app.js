@@ -253,8 +253,15 @@ async function fetchWithCache(url, cacheKey) {
   return data;
 }
 
+// ============ Default API URLs ============
+const DEFAULT_API_URLS = {
+  ejournal: 'https://script.google.com/macros/s/AKfycbziM_TSDKHuo-aTUMVw-oHvGR7pOR3r61sSlHdhVsPXP5rOd5dpMUm1hxwuisulgBAL/exec',
+  lseg: 'https://script.google.com/macros/s/AKfycbx65Th0U5mwzaqTeJnY26_2u3iLuqZq4BUKvQIZb-q-B1XmdMEJyRsGmAn_eYSPLa6S/exec',
+  stata: 'https://script.google.com/macros/s/AKfycbx0PHzUqIW_auR8qWtvkou56Pb49LvAJSh76WrqVui2rw3VrNOvj54KcxeUd1SsrZtL/exec'
+};
+
 function getStoredApiUrl(key) {
-  return localStorage.getItem('api_url_' + key) || '';
+  return localStorage.getItem('api_url_' + key) || DEFAULT_API_URLS[key] || '';
 }
 
 function setStoredApiUrl(key, url) {

@@ -26,12 +26,15 @@
       <div class="page-header">
         <h1>STATA</h1>
         <p class="page-description">
-          Data penggunaan aplikasi STATA per program studi, kategori user, dan kebutuhan penggunaan.
+          Data penggunaan aplikasi STATA per program studi, kategori user, dan kebutuhan penggunaan secara otomatis terintegrasi.
         </p>
+        <button onclick="const p = document.getElementById('config-panel'); p.style.display = p.style.display === 'none' ? 'block' : 'none';" style="background: none; border: none; font-size: 12px; cursor: pointer; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; font-family: 'Inter', sans-serif;">
+          <span>⚙️ Konfigurasi URL</span>
+        </button>
       </div>
 
       <!-- API Config -->
-      <div class="config-panel" id="config-panel">
+      <div class="config-panel" id="config-panel" style="display: none;">
         <div class="config-title">⚙️ Konfigurasi Sumber Data</div>
         <div class="config-input-group">
           <input type="text" id="api-url-input" placeholder="Paste URL Google Apps Script di sini...">

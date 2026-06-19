@@ -55,6 +55,7 @@ async function fetchData(url) {
   } catch (err) {
     document.getElementById('loading').style.display = 'none';
     document.getElementById('stata-empty').style.display = 'flex';
+    document.getElementById('config-panel').style.display = 'block'; // Tampilkan panel jika gagal load
     showToast('Gagal mengambil data: ' + err.message, 'error');
     console.error(err);
   }

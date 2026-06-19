@@ -125,6 +125,7 @@ async function fetchEjournalData(url) {
   } catch (err) {
     document.getElementById('loading').style.display = 'none';
     document.getElementById('ej-empty').style.display = 'flex';
+    document.getElementById('config-panel').style.display = 'block'; // Tampilkan panel jika gagal load
     showToast('Gagal mengambil data: ' + err.message, 'error');
     console.error('[EJ] ❌ Error:', err);
   }
