@@ -86,7 +86,8 @@ function processEjournalData(data) {
       totalAccess += j.total || 0;
       if (j.monthly) {
         Object.entries(j.monthly).forEach(([month, val]) => {
-          monthlyTotals[month] = (monthlyTotals[month] || 0) + val;
+          const normMonth = normalizeMonthLabel(month);
+          monthlyTotals[normMonth] = (monthlyTotals[normMonth] || 0) + val;
         });
       }
     }

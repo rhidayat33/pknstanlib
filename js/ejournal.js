@@ -75,9 +75,25 @@ async function fetchEjournalData(url) {
       throw new Error('Tidak ada data jurnal ditemukan');
     }
 
+    // Normalize monthly keys and monthColumns
+    const normalizedJournals = data.journals.map(j => {
+      const normalizedMonthly = {};
+      if (j.monthly) {
+        Object.entries(j.monthly).forEach(([m, v]) => {
+          normalizedMonthly[normalizeMonthLabel(m)] = v;
+        });
+      }
+      return {
+        ...j,
+        monthly: normalizedMonthly
+      };
+    });
+
+    const normalizedMonthColumns = (data.monthColumns || []).map(m => normalizeMonthLabel(m));
+
     ejournalData = {
-      journals: data.journals,
-      monthColumns: data.monthColumns || [],
+      journals: normalizedJournals,
+      monthColumns: normalizedMonthColumns,
       metricTypes: data.metricTypes || [],
     };
 

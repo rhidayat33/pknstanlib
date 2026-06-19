@@ -63,18 +63,23 @@ const MONTH_NAMES_FULL = [
 function initChartDefaults() {
   if (typeof Chart === 'undefined') return;
 
-  Chart.defaults.color = '#94a3b8';
+  Chart.defaults.color = '#64748b';
   Chart.defaults.font.family = "'Inter', sans-serif";
   Chart.defaults.font.size = 12;
   Chart.defaults.plugins.legend.labels.usePointStyle = true;
   Chart.defaults.plugins.legend.labels.pointStyle = 'circle';
   Chart.defaults.plugins.legend.labels.padding = 16;
-  Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15, 15, 42, 0.95)';
+  
+  // Premium white tooltip for light mode
+  Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(255, 255, 255, 0.98)';
+  Chart.defaults.plugins.tooltip.titleColor = '#0f172a';
+  Chart.defaults.plugins.tooltip.bodyColor = '#475569';
   Chart.defaults.plugins.tooltip.titleFont = { weight: '600' };
   Chart.defaults.plugins.tooltip.padding = 12;
   Chart.defaults.plugins.tooltip.cornerRadius = 8;
-  Chart.defaults.plugins.tooltip.borderColor = 'rgba(99, 102, 241, 0.2)';
+  Chart.defaults.plugins.tooltip.borderColor = 'rgba(15, 23, 42, 0.08)';
   Chart.defaults.plugins.tooltip.borderWidth = 1;
+  
   Chart.defaults.elements.bar.borderRadius = 6;
   Chart.defaults.elements.bar.borderSkipped = false;
   
@@ -87,7 +92,7 @@ function initChartDefaults() {
       if (!Chart.defaults.scales[scaleType].grid) {
         Chart.defaults.scales[scaleType].grid = {};
       }
-      Chart.defaults.scales[scaleType].grid.color = 'rgba(255, 255, 255, 0.04)';
+      Chart.defaults.scales[scaleType].grid.color = 'rgba(15, 23, 42, 0.05)';
       Chart.defaults.scales[scaleType].grid.drawBorder = false;
 
       if (!Chart.defaults.scales[scaleType].ticks) {
@@ -97,7 +102,7 @@ function initChartDefaults() {
     });
   } else if (Chart.defaults.scale) {
     if (!Chart.defaults.scale.grid) Chart.defaults.scale.grid = {};
-    Chart.defaults.scale.grid.color = 'rgba(255, 255, 255, 0.04)';
+    Chart.defaults.scale.grid.color = 'rgba(15, 23, 42, 0.05)';
     Chart.defaults.scale.grid.drawBorder = false;
 
     if (!Chart.defaults.scale.ticks) Chart.defaults.scale.ticks = {};
@@ -179,6 +184,39 @@ function getYear(date) {
   const d = date instanceof Date ? date : new Date(date);
   if (isNaN(d.getTime())) return null;
   return d.getFullYear();
+}
+
+function normalizeMonthLabel(label) {
+  if (!label) return 'Tidak Diketahui';
+  
+  const cleanLabel = String(label).trim();
+  
+  // Format: "Jan 2023" or similar
+  if (/^[A-Za-z]{3}\s\d{4}$/.test(cleanLabel)) {
+    return cleanLabel;
+  }
+  
+  // Format: "Jan-2023" or "Jan/2023"
+  const dashMatch = cleanLabel.match(/^([A-Za-z]{3})[-/](\d{4})$/);
+  if (dashMatch) {
+    let m = dashMatch[1];
+    if (m.toLowerCase() === 'may') m = 'Mei';
+    if (m.toLowerCase() === 'aug') m = 'Agu';
+    if (m.toLowerCase() === 'oct') m = 'Okt';
+    if (m.toLowerCase() === 'dec') m = 'Des';
+    m = m.charAt(0).toUpperCase() + m.slice(1).toLowerCase();
+    return `${m} ${dashMatch[2]}`;
+  }
+
+  // Parse raw date string e.g. "Sun Jan 01 2023..." or ISO format
+  const parsedDate = new Date(cleanLabel);
+  if (!isNaN(parsedDate.getTime())) {
+    const monthIndex = parsedDate.getMonth();
+    const year = parsedDate.getFullYear();
+    return `${MONTH_NAMES[monthIndex]} ${year}`;
+  }
+
+  return cleanLabel;
 }
 
 // ============ Data Grouping ============
