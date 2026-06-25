@@ -31,6 +31,10 @@ function saveAndFetch() {
     return;
   }
   setStoredApiUrl('stata', url);
+  
+  // Clear old cache so fresh data is fetched
+  localStorage.removeItem('dashboard_cache_stata');
+  
   fetchData(url);
 }
 

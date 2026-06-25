@@ -33,6 +33,10 @@ function saveAndFetch() {
     return;
   }
   setStoredApiUrl('lseg', url);
+  
+  // Clear old cache so fresh data is fetched
+  localStorage.removeItem('dashboard_cache_lseg');
+  
   fetchData(url);
 }
 
