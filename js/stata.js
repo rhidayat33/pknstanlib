@@ -220,8 +220,8 @@ function renderMonthlyChart(data) {
 
 function renderProdiChart(data) {
   const prodiCounts = sortObjectByValue(countBy(data, d => d.prodi), true);
-  const labels = Object.keys(prodiCounts);
-  const values = Object.values(prodiCounts);
+  const labels = Object.keys(prodiCounts).slice(0, 10);
+  const values = Object.values(prodiCounts).slice(0, 10);
 
   const ctx = document.getElementById('chart-stata-prodi').getContext('2d');
   stataCharts.prodi = createHorizontalBarChart(ctx, labels, values, CHART_COLORS.emerald);
