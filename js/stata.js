@@ -24,21 +24,21 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('stata-filter-category').addEventListener('change', onStataFilterChange);
 });
 
-function saveAndFetch() {
+async function saveAndFetch() {
   const url = document.getElementById('api-url-input').value.trim();
   if (!url) {
     showToast('Masukkan URL Apps Script terlebih dahulu', 'error');
     return;
   }
-  setStoredApiUrl('stata', url);
+  try { setStoredApiUrl('stata', url); } catch (error) { showToast(error.message, 'error'); return; }
   
   // Clear old cache so fresh data is fetched
-  localStorage.removeItem('dashboard_cache_stata');
+
   
-  fetchData(url);
+  await fetchData(url, true);
 }
 
-async function fetchData(url) {
+async function fetchData(url, force = false) {
   document.getElementById('loading').style.display = 'flex';
   document.getElementById('stata-empty').style.display = 'none';
   document.getElementById('stata-stats').style.display = 'none';
@@ -46,13 +46,13 @@ async function fetchData(url) {
   document.getElementById('stata-table-card').style.display = 'none';
 
   try {
-    const data = await fetchWithCache(url, 'stata');
+    const data = await fetchWithCache(url, 'stata', { force });
     stataRawData = Array.isArray(data) ? data : (data.data || []);
 
-    if (stataRawData.length === 0) throw new Error('Tidak ada data');
+
 
     document.getElementById('loading').style.display = 'none';
-    showToast(`Berhasil mengambil ${stataRawData.length} data STATA`, 'success');
+    if (sourceStates['stata']?.state !== 'stale') showToast(`Berhasil mengambil ${stataRawData.length} data STATA`, 'success');
 
     populateFilters();
     renderAll();
@@ -137,7 +137,7 @@ function populateFilters() {
   const prodiSelect = document.getElementById('stata-filter-prodi');
   prodiSelect.innerHTML = '<option value="all">Semua</option>';
   Array.from(prodis).sort().forEach(p => {
-    prodiSelect.innerHTML += `<option value="${p}">${p}</option>`;
+    prodiSelect.innerHTML += `<option value="${escapeHTML(p)}">${escapeHTML(p)}</option>`;
   });
 }
 
@@ -155,6 +155,7 @@ function renderAll() {
   document.getElementById('stata-table-card').style.display = '';
 
   const totalUsers = data.length;
+  document.getElementById('stata-unique-note').textContent = uniqueUserCount(data) + ' pengguna unik dengan NIP/NIM terisi';
   const prodis = new Set(data.map(d => d.prodi));
   const categories = countBy(data, d => classifyUser(d.nipnim));
 
@@ -183,13 +184,7 @@ function renderMonthlyChart(data) {
   delete monthly['null'];
   delete monthly['Tidak Diketahui'];
 
-  const sorted = Object.entries(monthly).sort((a, b) => {
-    const pa = a[0].split(' ');
-    const pb = b[0].split(' ');
-    const ya = parseInt(pa[1]), yb = parseInt(pb[1]);
-    if (ya !== yb) return ya - yb;
-    return MONTH_NAMES.indexOf(pa[0]) - MONTH_NAMES.indexOf(pb[0]);
-  });
+  const sorted = sortMonthYearEntries(Object.entries(monthly));
 
   const labels = sorted.map(s => s[0]);
   const values = sorted.map(s => s[1]);
@@ -200,7 +195,7 @@ function renderMonthlyChart(data) {
     data: {
       labels,
       datasets: [{
-        label: 'Jumlah Pengguna',
+        label: 'Jumlah Penggunaan',
         data: values,
         backgroundColor: 'rgba(16, 185, 129, 0.7)',
         borderRadius: 6,
@@ -261,43 +256,23 @@ function renderTable(data) {
     const cat = classifyUser(d.nipnim);
     return `<tr>
       <td>${start + i + 1}</td>
-      <td>${d.nama || '—'}</td>
-      <td>${d.nipnim || '—'}</td>
-      <td>${d.prodi || '—'}</td>
-      <td style="white-space:normal; max-width:200px;">${d.kebutuhan || '—'}</td>
+      <td>${escapeHTML(d.nama || '—')}</td>
+      <td>${escapeHTML(d.nipnim || '—')}</td>
+      <td>${escapeHTML(d.prodi || '—')}</td>
+      <td style="white-space:normal; max-width:200px;">${escapeHTML(d.kebutuhan || '—')}</td>
       <td><span style="padding:2px 8px; border-radius:12px; font-size:11px; font-weight:600;
         background:${cat === 'Dosen' ? 'rgba(99,102,241,0.15)' : cat === 'Mahasiswa' ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)'};
         color:${cat === 'Dosen' ? 'var(--accent-indigo)' : cat === 'Mahasiswa' ? 'var(--accent-emerald)' : 'var(--accent-amber)'};
       ">${cat}</span></td>
     </tr>`;
   }).join('');
+  if (!pageData.length) tbody.innerHTML = '<tr><td colspan="6" class="table-empty">Tidak ada data yang cocok. Coba ubah atau reset filter.</td></tr>';
 
   document.getElementById('stata-page-info').textContent =
-    `Menampilkan ${start + 1}–${Math.min(start + STATA_PAGE_SIZE, data.length)} dari ${data.length}`;
+    `Menampilkan ${data.length ? start + 1 : 0}–${Math.min(start + STATA_PAGE_SIZE, data.length)} dari ${data.length}`;
 
-  const btnContainer = document.getElementById('stata-page-buttons');
-  btnContainer.innerHTML = '';
-  if (totalPages > 1) {
-    const prevBtn = document.createElement('button');
-    prevBtn.className = 'pagination-btn';
-    prevBtn.textContent = '←';
-    prevBtn.disabled = stataCurrentPage === 1;
-    prevBtn.onclick = () => { stataCurrentPage--; renderTable(getFilteredData()); };
-    btnContainer.appendChild(prevBtn);
-
-    for (let p = 1; p <= Math.min(totalPages, 5); p++) {
-      const btn = document.createElement('button');
-      btn.className = `pagination-btn ${p === stataCurrentPage ? 'active' : ''}`;
-      btn.textContent = p;
-      btn.onclick = () => { stataCurrentPage = p; renderTable(getFilteredData()); };
-      btnContainer.appendChild(btn);
-    }
-
-    const nextBtn = document.createElement('button');
-    nextBtn.className = 'pagination-btn';
-    nextBtn.textContent = '→';
-    nextBtn.disabled = stataCurrentPage === totalPages;
-    nextBtn.onclick = () => { stataCurrentPage++; renderTable(getFilteredData()); };
-    btnContainer.appendChild(nextBtn);
-  }
+  renderPagination('stata-page-buttons', stataCurrentPage, totalPages, page => {
+    stataCurrentPage = page;
+    renderTable(getFilteredData());
+  });
 }

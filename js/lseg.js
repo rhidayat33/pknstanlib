@@ -26,21 +26,21 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('lseg-filter-category').addEventListener('change', onLsegFilterChange);
 });
 
-function saveAndFetch() {
+async function saveAndFetch() {
   const url = document.getElementById('api-url-input').value.trim();
   if (!url) {
     showToast('Masukkan URL Apps Script terlebih dahulu', 'error');
     return;
   }
-  setStoredApiUrl('lseg', url);
+  try { setStoredApiUrl('lseg', url); } catch (error) { showToast(error.message, 'error'); return; }
   
   // Clear old cache so fresh data is fetched
-  localStorage.removeItem('dashboard_cache_lseg');
+
   
-  fetchData(url);
+  await fetchData(url, true);
 }
 
-async function fetchData(url) {
+async function fetchData(url, force = false) {
   document.getElementById('loading').style.display = 'flex';
   document.getElementById('lseg-empty').style.display = 'none';
   document.getElementById('lseg-stats').style.display = 'none';
@@ -48,15 +48,13 @@ async function fetchData(url) {
   document.getElementById('lseg-table-card').style.display = 'none';
 
   try {
-    const data = await fetchWithCache(url, 'lseg');
+    const data = await fetchWithCache(url, 'lseg', { force });
     lsegRawData = Array.isArray(data) ? data : (data.data || []);
 
-    if (lsegRawData.length === 0) {
-      throw new Error('Tidak ada data');
-    }
+
 
     document.getElementById('loading').style.display = 'none';
-    showToast(`Berhasil mengambil ${lsegRawData.length} data LSEG`, 'success');
+    if (sourceStates['lseg']?.state !== 'stale') showToast(`Berhasil mengambil ${lsegRawData.length} data LSEG`, 'success');
 
     populateFilters();
     renderAll();
@@ -142,7 +140,7 @@ function populateFilters() {
   const prodiSelect = document.getElementById('lseg-filter-prodi');
   prodiSelect.innerHTML = '<option value="all">Semua Prodi</option>';
   Array.from(prodis).sort().forEach(p => {
-    prodiSelect.innerHTML += `<option value="${p}">${p}</option>`;
+    prodiSelect.innerHTML += `<option value="${escapeHTML(p)}">${escapeHTML(p)}</option>`;
   });
 }
 
@@ -161,6 +159,7 @@ function renderAll() {
 
   // Stats
   const totalUsers = data.length;
+  document.getElementById('lseg-unique-note').textContent = uniqueUserCount(data) + ' pengguna unik dengan NIP/NIM terisi';
   const prodis = new Set(data.map(d => d.prodi));
   const categories = countBy(data, d => classifyUser(d.nipnim));
 
@@ -191,13 +190,7 @@ function renderMonthlyChart(data) {
   delete monthly['null'];
   delete monthly['Tidak Diketahui'];
 
-  const sorted = Object.entries(monthly).sort((a, b) => {
-    const pa = a[0].split(' ');
-    const pb = b[0].split(' ');
-    const ya = parseInt(pa[1]), yb = parseInt(pb[1]);
-    if (ya !== yb) return ya - yb;
-    return MONTH_NAMES.indexOf(pa[0]) - MONTH_NAMES.indexOf(pb[0]);
-  });
+  const sorted = sortMonthYearEntries(Object.entries(monthly));
 
   const labels = sorted.map(s => s[0]);
   const values = sorted.map(s => s[1]);
@@ -208,7 +201,7 @@ function renderMonthlyChart(data) {
     data: {
       labels,
       datasets: [{
-        label: 'Jumlah Pengguna',
+        label: 'Jumlah Penggunaan',
         data: values,
         backgroundColor: 'rgba(6, 182, 212, 0.7)',
         borderRadius: 6,
@@ -270,43 +263,23 @@ function renderTable(data) {
     const dateStr = date ? date.toLocaleDateString('id-ID') : d.tanggal || '—';
     return `<tr>
       <td>${start + i + 1}</td>
-      <td>${d.nipnim || '—'}</td>
-      <td>${d.prodi || '—'}</td>
-      <td>${dateStr}</td>
-      <td style="white-space:normal; max-width:200px;">${d.tujuan || '—'}</td>
+      <td>${escapeHTML(d.nipnim || '—')}</td>
+      <td>${escapeHTML(d.prodi || '—')}</td>
+      <td>${escapeHTML(dateStr)}</td>
+      <td style="white-space:normal; max-width:200px;">${escapeHTML(d.tujuan || '—')}</td>
       <td><span style="padding:2px 8px; border-radius:12px; font-size:11px; font-weight:600;
         background:${classifyUser(d.nipnim) === 'Dosen' ? 'rgba(99,102,241,0.15)' : classifyUser(d.nipnim) === 'Mahasiswa' ? 'rgba(6,182,212,0.15)' : 'rgba(245,158,11,0.15)'};
         color:${classifyUser(d.nipnim) === 'Dosen' ? 'var(--accent-indigo)' : classifyUser(d.nipnim) === 'Mahasiswa' ? 'var(--accent-cyan)' : 'var(--accent-amber)'};
       ">${classifyUser(d.nipnim)}</span></td>
     </tr>`;
   }).join('');
+  if (!pageData.length) tbody.innerHTML = '<tr><td colspan="6" class="table-empty">Tidak ada data yang cocok. Coba ubah atau reset filter.</td></tr>';
 
   document.getElementById('lseg-page-info').textContent =
-    `Menampilkan ${start + 1}–${Math.min(start + LSEG_PAGE_SIZE, data.length)} dari ${data.length}`;
+    `Menampilkan ${data.length ? start + 1 : 0}–${Math.min(start + LSEG_PAGE_SIZE, data.length)} dari ${data.length}`;
 
-  const btnContainer = document.getElementById('lseg-page-buttons');
-  btnContainer.innerHTML = '';
-  if (totalPages > 1) {
-    const prevBtn = document.createElement('button');
-    prevBtn.className = 'pagination-btn';
-    prevBtn.textContent = '←';
-    prevBtn.disabled = lsegCurrentPage === 1;
-    prevBtn.onclick = () => { lsegCurrentPage--; renderTable(getFilteredData()); };
-    btnContainer.appendChild(prevBtn);
-
-    for (let p = 1; p <= Math.min(totalPages, 5); p++) {
-      const btn = document.createElement('button');
-      btn.className = `pagination-btn ${p === lsegCurrentPage ? 'active' : ''}`;
-      btn.textContent = p;
-      btn.onclick = () => { lsegCurrentPage = p; renderTable(getFilteredData()); };
-      btnContainer.appendChild(btn);
-    }
-
-    const nextBtn = document.createElement('button');
-    nextBtn.className = 'pagination-btn';
-    nextBtn.textContent = '→';
-    nextBtn.disabled = lsegCurrentPage === totalPages;
-    nextBtn.onclick = () => { lsegCurrentPage++; renderTable(getFilteredData()); };
-    btnContainer.appendChild(nextBtn);
-  }
+  renderPagination('lseg-page-buttons', lsegCurrentPage, totalPages, page => {
+    lsegCurrentPage = page;
+    renderTable(getFilteredData());
+  });
 }

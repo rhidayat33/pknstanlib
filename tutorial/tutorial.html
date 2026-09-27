@@ -128,7 +128,7 @@
 </head>
 <body>
   <div class="app-layout">
-    <button class="mobile-menu-btn" id="mobile-menu-btn">
+    <button type="button" aria-label="Buka menu navigasi" aria-controls="sidebar" aria-expanded="false" class="mobile-menu-btn" id="mobile-menu-btn">
       <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none">
         <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
       </svg>
@@ -145,245 +145,82 @@
       </div>
 
       <div class="tutorial-content">
-
-        <!-- Table of Contents -->
-        <div class="toc">
-          <h3>📋 Daftar Isi</h3>
-          <a href="#setup-lseg">1. Setup Apps Script — LSEG</a>
-          <a href="#setup-stata">2. Setup Apps Script — STATA</a>
-          <a href="#upload-ejournal">3. Upload Data E-Journal</a>
-          <a href="#penggunaan">4. Cara Menggunakan Dashboard</a>
-          <a href="#update-data">5. Update Data Periodik</a>
-          <a href="#troubleshooting">6. Troubleshooting</a>
-        </div>
-
-        <!-- Section 1: Setup LSEG -->
-        <div class="tutorial-section" id="setup-lseg">
-          <h2>📊 1. Setup Apps Script — LSEG</h2>
-          <p>Langkah-langkah menghubungkan Google Sheet LSEG dengan dashboard:</p>
-
-          <div class="step-item">
-            <span class="step-badge">1</span>
-            <div class="step-content">
-              <strong>Buka Google Sheet LSEG</strong>
-              <p>Buka spreadsheet LSEG yang berisi data pengguna di Google Sheets.</p>
-            </div>
-          </div>
-
-          <div class="step-item">
-            <span class="step-badge">2</span>
-            <div class="step-content">
-              <strong>Buka Apps Script Editor</strong>
-              <p>Klik menu <strong>Extensions</strong> → <strong>Apps Script</strong>. Editor kode akan terbuka di tab baru.</p>
-            </div>
-          </div>
-
-          <div class="step-item">
-            <span class="step-badge">3</span>
-            <div class="step-content">
-              <strong>Paste Kode Apps Script</strong>
-              <p>Hapus semua kode bawaan di editor, lalu salin dan tempel kode berikut:</p>
-              <div class="highlight-box">
-                📄 File kode: <strong>apps-script/lseg-apps-script.js</strong><br>
-                Buka file tersebut di folder dashboard, salin seluruh isinya, dan paste di editor Apps Script.
-              </div>
-            </div>
-          </div>
-
-          <div class="step-item">
-            <span class="step-badge">4</span>
-            <div class="step-content">
-              <strong>Deploy sebagai Web App</strong>
-              <ol>
-                <li>Klik tombol <strong>"Deploy"</strong> (kanan atas) → <strong>"New deployment"</strong></li>
-                <li>Klik ikon ⚙️ di sebelah "Select type" → pilih <strong>"Web app"</strong></li>
-                <li>Isi konfigurasi:
-                  <ul>
-                    <li><strong>Description:</strong> LSEG API</li>
-                    <li><strong>Execute as:</strong> Me (akun Anda)</li>
-                    <li><strong>Who has access:</strong> Anyone</li>
-                  </ul>
-                </li>
-                <li>Klik <strong>"Deploy"</strong></li>
-                <li>Klik <strong>"Authorize access"</strong> jika diminta, lalu pilih akun Google Anda</li>
-              </ol>
-            </div>
-          </div>
-
-          <div class="step-item">
-            <span class="step-badge">5</span>
-            <div class="step-content">
-              <strong>Copy URL Deployment</strong>
-              <p>Setelah deploy berhasil, akan muncul URL seperti:</p>
-              <div class="code-block">https://script.google.com/macros/s/AKfycb.../exec</div>
-              <p>Salin URL tersebut.</p>
-            </div>
-          </div>
-
-          <div class="step-item">
-            <span class="step-badge">6</span>
-            <div class="step-content">
-              <strong>Paste URL di Dashboard</strong>
-              <p>Buka halaman <strong>LSEG</strong> di dashboard, paste URL pada kolom "Konfigurasi Sumber Data", lalu klik <strong>"Hubungkan"</strong>.</p>
-            </div>
-          </div>
-
-          <div class="warning-box">
-            ⚠️ <strong>Keamanan (Token Lock):</strong> Kode Apps Script kini dilengkapi token pengunci keamanan (<code>pknstanlib_secret_key_2026</code>). Dashboard otomatis menyematkan token ini secara aman saat mengambil data, sehingga pihak luar tidak bisa mengakses data Google Sheet Anda tanpa token ini.
-          </div>
-          <div class="warning-box" style="margin-top: 10px;">
-            ⚠️ <strong>Penting:</strong> Jika Anda mengupdate kode Apps Script, Anda perlu membuat <strong>deployment baru</strong> (bukan edit deployment lama) agar perubahan berlaku.
-          </div>
-        </div>
-
-        <!-- Section 2: Setup STATA -->
-        <div class="tutorial-section" id="setup-stata">
-          <h2>💻 2. Setup Apps Script — STATA</h2>
-          <p>Langkahnya sama persis seperti LSEG, tetapi menggunakan file kode yang berbeda:</p>
-
-          <div class="highlight-box">
-            📄 File kode: <strong>apps-script/stata-apps-script.js</strong><br>
-            Buka Google Sheet STATA → Extensions → Apps Script → paste kode dari file di atas → Deploy sebagai Web App.
-          </div>
-
-          <p>Setelah mendapatkan URL deployment, paste di halaman <strong>STATA</strong> pada dashboard.</p>
-        </div>
-
-        <!-- Section 3: Upload E-Journal -->
-        <div class="tutorial-section" id="upload-ejournal">
-          <h2>📚 3. Upload Data E-Journal</h2>
-          <p>Data E-Journal menggunakan format COUNTER report dari Emerald Insight.</p>
-
-          <div class="step-item">
-            <span class="step-badge">1</span>
-            <div class="step-content">
-              <strong>Siapkan File COUNTER Report</strong>
-              <p>File harus berformat <strong>.xlsx</strong> atau <strong>.csv</strong> dengan format COUNTER 5 (TR_J1). File yang diberikan oleh Emerald Insight biasanya sudah sesuai format ini.</p>
-            </div>
-          </div>
-
-          <div class="step-item">
-            <span class="step-badge">2</span>
-            <div class="step-content">
-              <strong>Buka Halaman E-Journal</strong>
-              <p>Navigasi ke halaman <strong>E-Journal</strong> melalui sidebar.</p>
-            </div>
-          </div>
-
-          <div class="step-item">
-            <span class="step-badge">3</span>
-            <div class="step-content">
-              <strong>Upload File</strong>
-              <p>Drag & drop file ke area upload, atau klik <strong>"Pilih File"</strong> untuk memilih file dari komputer Anda.</p>
-            </div>
-          </div>
-
-          <div class="step-item">
-            <span class="step-badge">4</span>
-            <div class="step-content">
-              <strong>Data Otomatis Tampil</strong>
-              <p>Setelah file diproses, grafik dan tabel akan otomatis muncul. Data disimpan di browser (localStorage) sehingga tetap tersedia saat Anda membuka dashboard kembali.</p>
-            </div>
-          </div>
-
-          <div class="highlight-box">
-            💡 <strong>Tips:</strong> Untuk memperbarui data, cukup upload file baru. Data lama akan otomatis digantikan.
-          </div>
-        </div>
-
-        <!-- Section 4: Cara Penggunaan -->
-        <div class="tutorial-section" id="penggunaan">
-          <h2>🖥️ 4. Cara Menggunakan Dashboard</h2>
-
-          <h3>Navigasi</h3>
-          <ul>
-            <li>Gunakan <strong>sidebar</strong> di kiri untuk berpindah antar halaman</li>
-            <li>Pada perangkat mobile, klik ikon <strong>menu (☰)</strong> di kiri atas</li>
-            <li>Halaman <strong>Home</strong> menampilkan ringkasan semua e-resources</li>
-          </ul>
-
-          <h3>Filter Data</h3>
-          <ul>
-            <li><strong>Filter Tahun:</strong> Tampilkan data untuk tahun tertentu</li>
-            <li><strong>Filter Prodi:</strong> Tampilkan data untuk program studi tertentu (LSEG & STATA)</li>
-            <li><strong>Filter Kategori:</strong> Tampilkan data Dosen, Mahasiswa, atau Lainnya</li>
-            <li><strong>Pencarian:</strong> Cari jurnal berdasarkan judul (E-Journal)</li>
-          </ul>
-
-          <h3>Membaca Grafik</h3>
-          <ul>
-            <li><strong>Bar chart:</strong> Menunjukkan perbandingan kuantitas antar kategori</li>
-            <li><strong>Line chart:</strong> Menunjukkan tren dari waktu ke waktu</li>
-            <li><strong>Doughnut chart:</strong> Menunjukkan proporsi/distribusi</li>
-            <li>Arahkan kursor ke grafik untuk melihat detail (tooltip)</li>
-          </ul>
-
-          <h3>Tabel Data</h3>
-          <ul>
-            <li>Tabel menampilkan data detail dengan paginasi</li>
-            <li>Gunakan tombol navigasi di bawah tabel untuk berpindah halaman</li>
-          </ul>
-        </div>
-
-        <!-- Section 5: Update Data -->
-        <div class="tutorial-section" id="update-data">
-          <h2>🔄 5. Update Data Periodik</h2>
-
-          <h3>LSEG & STATA (Otomatis)</h3>
-          <p>Data LSEG dan STATA berasal dari Google Form yang terhubung ke Google Sheets. Setiap ada pengisian form baru, data otomatis masuk ke spreadsheet. Dashboard akan mengambil data terbaru setiap kali dimuat (dengan cache 30 menit).</p>
-          <div class="highlight-box">
-            💡 Untuk memaksa refresh data, hapus cache browser atau buka dashboard di jendela Incognito.
-          </div>
-
-          <h3>E-Journal (Manual)</h3>
-          <p>Data E-Journal perlu diupload manual secara periodik:</p>
+        <nav class="toc" aria-label="Daftar isi panduan">
+          <h3>Daftar isi</h3>
+          <a href="#menghubungkan">1. Menghubungkan sumber data</a>
+          <a href="#format">2. Format data tiap layanan</a>
+          <a href="#membaca">3. Membaca statistik</a>
+          <a href="#pembaruan">4. Pembaruan, filter, dan ekspor</a>
+          <a href="#kendala">5. Mengatasi kendala</a>
+        </nav>
+        <section class="tutorial-section" id="menghubungkan">
+          <h2>1. Menghubungkan sumber data</h2>
+          <p>Keempat layanan membaca data dari Google Sheets melalui Google Apps Script. File Excel atau CSV perlu diimpor ke Google Sheets terlebih dahulu; dashboard tidak menyediakan unggah file langsung.</p>
           <ol>
-            <li>Download COUNTER report terbaru dari Emerald Insight</li>
-            <li>Buka halaman E-Journal di dashboard</li>
-            <li>Upload file baru — data lama akan otomatis digantikan</li>
+            <li>Buka Google Sheets yang berisi data layanan. Pastikan format kolom sesuai tabel panduan di bawah.</li>
+            <li>Buka Extensions → Apps Script. Gunakan kode penghubung untuk layanan yang sesuai dari folder <code>apps-script</code> proyek ini.</li>
+            <li>Deploy sebagai Web app, dijalankan sebagai pemilik spreadsheet. Gunakan pengaturan akses sesuai lingkungan pemasangan Anda.</li>
+            <li>Salin URL deployment yang berakhiran <code>/exec</code>.</li>
+            <li>Buka halaman layanan di dashboard → Konfigurasi URL → masukkan URL → Hubungkan.</li>
           </ol>
-        </div>
-
-        <!-- Section 6: Troubleshooting -->
-        <div class="tutorial-section" id="troubleshooting">
-          <h2>🔧 6. Troubleshooting</h2>
-
-          <h3>Data LSEG/STATA tidak muncul</h3>
+          <p>Pengaturan URL disimpan pada browser dan perangkat yang digunakan. Setelah kode Apps Script diubah, perbarui deployment ke versi baru agar perubahan berlaku.</p>
+        </section>
+        <section class="tutorial-section" id="format">
+          <h2>2. Format data tiap layanan</h2>
+          <h3>E-Journal</h3>
+          <p>Gunakan laporan COUNTER dengan header <code>Title</code>, <code>Metric_Type</code>, <code>Reporting_Period_Total</code>, lalu kolom bulan seperti <code>Jan-2026</code>. Penghubung mencari header Title dalam 30 baris pertama dan membaca kolom bulan setelah total. Secara bawaan sheet pertama yang digunakan.</p>
+          <p>Tambahkan periode tanpa menggandakan laporan yang sudah ada. Data agregat jurnal tidak menyediakan identitas pengguna, sehingga rincian pengguna tidak ditampilkan untuk layanan ini.</p>
+          <h3>LSEG</h3>
+          <p>Kolom D: NIP/NIM; E: email; F: prodi; H: tanggal penggunaan; J: tujuan. Nama sheet yang dicari adalah <code>lseg user</code>, kemudian <code>Form Responses 1</code>, atau sheet pertama.</p>
+          <h3>STATA</h3>
+          <p>Kolom A: waktu pengajuan; B: nama; C: NIP/NIM/NIK; D: email; E: prodi/unit; F: kebutuhan. Gunakan sheet <code>Form Responses 1</code> atau sheet pertama.</p>
+          <h3>Uji Similaritas KTI</h3>
+          <p>Penghubung juga mengenali Details Report enam kolom: User first name, User last name, User email, Date processed, Words count, dan Similarity score. Pertahankan header aslinya saat diimpor ke Google Sheets. Laporan ini menyediakan tanggal, nama pengguna, dan skor, tetapi tidak memuat NIM atau judul KTI; dashboard menandai bagian tersebut sebagai tidak tersedia.</p>
+          <p>Kolom A: tanggal; B: NIM; C: nama; E: jenis KTI; F: judul; G: similaritas; H: status opsional. Secara bawaan sheet pertama digunakan.</p>
+          <p>Similaritas dapat berupa angka 30, teks 30%, atau sel berformat persentase. Hasil kosong/tidak valid ditampilkan tanpa angka dan mendapat status Proses jika status belum diisi. Nilai 0% tetap dihitung sebagai hasil yang sah.</p>
+          <div class="highlight-box">Gunakan kode KTI terbaru dalam proyek ini agar sel persentase dan hasil kosong diproses dengan benar. Perbarui deployment setelah mengganti kodenya.</div>
+        </section>
+        <section class="tutorial-section" id="membaca">
+          <h2>3. Membaca statistik</h2>
           <ul>
-            <li>Pastikan URL Apps Script sudah benar (diawali <code>https://script.google.com/</code>)</li>
-            <li>Pastikan Apps Script sudah di-deploy sebagai Web App dengan akses "Anyone"</li>
-            <li>Coba buka URL Apps Script langsung di browser — harus menampilkan data JSON</li>
-            <li>Jika ada perubahan kode, buat deployment baru</li>
+            <li>Home memakai metrik <code>Total_Item_Requests</code> untuk akses E-Journal.</li>
+            <li>Total penggunaan LSEG/STATA adalah jumlah catatan penggunaan. Pengguna unik dihitung dari NIP/NIM yang terisi, setelah filter diterapkan.</li>
+            <li>Kategori pengguna mengikuti aturan awalan NIP/NIM yang ada: 19 untuk dosen, 3 atau 4 untuk mahasiswa, dan lainnya untuk identitas lain. Ini merupakan klasifikasi otomatis yang perlu diperiksa terhadap data sumber.</li>
+            <li>Total aktivitas layanan menjumlahkan akses jurnal, catatan LSEG/STATA, dan pengajuan KTI. Angka ini bukan jumlah orang unik.</li>
+            <li>Status KTI yang diisi pada spreadsheet dipertahankan. Jika kosong, aturan aplikasi adalah ≤30% Lolos, >30–50% Revisi, dan >50% Tidak Lolos. Batas ini perlu disesuaikan bila kebijakan layanan berubah.</li>
+            <li>Rata-rata similaritas menghitung hasil numerik yang sah, termasuk 0%; hasil kosong dikecualikan. Grafik status tetap menyertakan pengajuan yang masih diproses atau berstatus lain.</li>
           </ul>
-
-          <h3>File E-Journal gagal diproses</h3>
+        </section>
+        <section class="tutorial-section" id="pembaruan">
+          <h2>4. Pembaruan, filter, dan ekspor</h2>
+          <p>Perbarui data di spreadsheet, kemudian tekan <strong>Perbarui data</strong> untuk mengambil data langsung. Dashboard menggunakan cache hingga 30 menit ketika halaman dibuka biasa.</p>
           <ul>
-            <li>Pastikan file berformat <strong>.xlsx</strong> atau <strong>.csv</strong></li>
-            <li>File harus memiliki header "Title" di kolom A (format COUNTER report)</li>
-            <li>Coba buka file di Excel/Google Sheets terlebih dahulu untuk memastikan data terbaca</li>
+            <li><strong>Terbaru:</strong> data berhasil diambil dari sumber.</li>
+            <li><strong>Tersimpan:</strong> data diambil dari cache browser.</li>
+            <li><strong>Data lama:</strong> pengambilan terbaru gagal, data sebelumnya tetap ditampilkan.</li>
+            <li><strong>Gagal:</strong> sumber gagal dimuat dan tidak ada cache yang cocok.</li>
           </ul>
-
-          <h3>Grafik tidak tampil</h3>
+          <p>Status sumber tampil sebagai label kecil di samping tombol tindakan. Klik label untuk melihat waktu pengambilan dan pesan kendala. Klik di luar rincian atau tekan Escape untuk menutupnya.</p>
+          <p>Gunakan filter tahun, kategori, metrik, atau pencarian yang tersedia. Filter prodi tersedia pada menu LSEG dan STATA. Tekan <strong>Reset filter</strong> untuk mengembalikan pilihan. <strong>Ekspor CSV</strong> mengunduh semua baris yang cocok dengan filter, termasuk baris pada halaman tabel berikutnya.</p>
+          <p>CSV dapat dibuka di aplikasi spreadsheet. Saat mengimpor identitas NIP/NIM, pilih tipe kolom teks untuk mempertahankan angka panjang dan nol di awal.</p>
+        </section>
+        <section class="tutorial-section" id="kendala">
+          <h2>5. Mengatasi kendala</h2>
           <ul>
-            <li>Pastikan koneksi internet stabil (Chart.js dimuat dari CDN)</li>
-            <li>Coba refresh halaman (Ctrl+F5)</li>
-            <li>Buka Console browser (F12 > Console) untuk melihat error</li>
+            <li><strong>Sumber tidak tersedia:</strong> periksa URL /exec, koneksi internet, akses deployment, dan pesan pada kartu sumber. Coba Perbarui data.</li>
+            <li><strong>Data kosong:</strong> periksa sheet yang dibaca dan pastikan baris header serta pemetaan kolom sesuai.</li>
+            <li><strong>Grafik gagal dimuat:</strong> periksa koneksi ke penyedia pustaka grafik, kemudian muat ulang halaman.</li>
+            <li><strong>Tanggal tidak masuk filter:</strong> gunakan sel tanggal valid atau format DD/MM/YYYY. Tanggal yang tidak valid tidak dimasukkan ke tren bulanan.</li>
+            <li><strong>Login mengalami kesalahan sistem:</strong> akses melalui HTTPS atau server lokal localhost agar fungsi pemeriksaan sandi tersedia.</li>
           </ul>
-
-          <h3>Hosting di GitHub Pages</h3>
-          <ol>
-            <li>Buat repository baru di GitHub</li>
-            <li>Upload seluruh folder <code>dashboard/</code> ke repository</li>
-            <li>Buka Settings → Pages → Source: Deploy from branch → Branch: main, folder: / (root)</li>
-            <li>Website akan tersedia di <code>https://username.github.io/repo-name/</code></li>
-          </ol>
-        </div>
-
+        </section>
       </div>
     </main>
   </div>
 
+  <script src="../js/data-utils.js"></script>
   <script src="../js/app.js"></script>
+  <script src="../js/dashboard-tools.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('sidebar').innerHTML = getSidebarHTML('tutorial');
