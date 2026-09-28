@@ -3,59 +3,305 @@
    Dashboard E-Resources PKN STAN
    ============================================ */
 
+let homeCharts = {};
+
+// ============ Trivia / Tips Carousel ============
+const TRIVIA_LIST = [
+  "E-Resources PKN STAN menyediakan akses ribuan jurnal bereputasi Scopus & WoS via Emerald Insight.",
+  "LSEG Workspace menyediakan data pasar finansial global, saham, dan ESG score terlengkap untuk riset Anda.",
+  "Software STATA berlisensi resmi tersedia di laboratorium komputer perpustakaan untuk analisis ekonometrika.",
+  "Batas toleransi uji similaritas KTI yang disarankan Perpustakaan PKN STAN adalah maksimal 30%.",
+  "Akses e-resources dapat digunakan oleh seluruh dosen dan mahasiswa aktif secara gratis.",
+  "Pemberitahuan hasil uji similaritas KTI diproses secara transparan dan terdata di sistem perpustakaan.",
+  "Tips: Anda dapat melihat rincian setiap layanan melalui menu navigasi di sebelah kiri."
+];
+
+let triviaInterval = null;
+function startTriviaCarousel() {
+  const triviaEl = document.getElementById('loading-trivia');
+  if (!triviaEl) return;
+  let idx = 0;
+  triviaInterval = setInterval(() => {
+    idx = (idx + 1) % TRIVIA_LIST.length;
+    triviaEl.style.opacity = '0';
+    setTimeout(() => {
+      triviaEl.textContent = TRIVIA_LIST[idx];
+      triviaEl.style.opacity = '1';
+    }, 300);
+  }, 3200);
+}
+
+function stopTriviaCarousel() {
+  if (triviaInterval) {
+    clearInterval(triviaInterval);
+    triviaInterval = null;
+  }
+}
+
+// ============ Loading Screen & Pipeline Helpers ============
+function updatePipelineItem(id, statusText, isDone) {
+  const item = document.getElementById('pipe-' + id);
+  const statusEl = document.getElementById('status-' + id);
+  const indEl = document.getElementById('ind-' + id);
+  if (statusEl) statusEl.textContent = statusText;
+  if (isDone && item) {
+    item.classList.add('loaded');
+    if (indEl) indEl.innerHTML = '<span style="color:#10b981;font-weight:800;font-size:14px;">✓</span>';
+  }
+}
+
+function updateLoadingProgress(pct, statusText, orbIcon) {
+  const bar = document.getElementById('loading-progress');
+  const pctEl = document.getElementById('loading-pct');
+  const statusEl = document.getElementById('loading-status');
+  const iconEl = document.getElementById('loading-orb-icon');
+
+  if (bar) bar.style.width = pct + '%';
+  if (pctEl) pctEl.textContent = pct + '%';
+  if (statusEl && statusText) statusEl.textContent = statusText;
+  if (iconEl && orbIcon) iconEl.textContent = orbIcon;
+}
+
+let isOverlayDismissed = false;
+function hideLoadingOverlay() {
+  if (isOverlayDismissed) return;
+  isOverlayDismissed = true;
+  stopTriviaCarousel();
+  const overlay = document.getElementById('loading-overlay');
+  if (overlay) {
+    overlay.classList.add('fade-out');
+    setTimeout(() => overlay.remove(), 600);
+  }
+}
+
+function forceEnterDashboard() {
+  hideLoadingOverlay();
+}
+
+function setSyncStatus(state, text) {
+  const badge = document.getElementById('sync-badge');
+  const txt = document.getElementById('sync-text');
+  if (!badge || !txt) return;
+  if (state === 'syncing') {
+    badge.className = 'sync-badge syncing';
+    txt.textContent = text || 'Menyinkronkan data...';
+  } else {
+    badge.className = 'sync-badge ' + (state === 'warning' ? 'sync-warning' : '');
+    txt.textContent = text || 'Data Terkini ✓';
+  }
+}
+
+function checkExistingCache() {
+  return !!(
+    localStorage.getItem(API_CACHE_KEY_PREFIX + 'ejournal') ||
+    localStorage.getItem(API_CACHE_KEY_PREFIX + 'lseg') ||
+    localStorage.getItem(API_CACHE_KEY_PREFIX + 'stata') ||
+    localStorage.getItem(API_CACHE_KEY_PREFIX + 'kti')
+  );
+}
+
+// ============ Main Entry Point (Stale-While-Revalidate) ============
 document.addEventListener('DOMContentLoaded', () => {
   // Render sidebar
   document.getElementById('sidebar').innerHTML = getSidebarHTML('home');
 
-  // Load data
-  loadHomeData();
+  const hasCache = checkExistingCache();
+
+  if (hasCache) {
+    // FAST PATH: Hydrate immediately from cache in <30ms!
+    hydrateFromCachedData();
+    // Dismiss loading overlay immediately
+    hideLoadingOverlay();
+    setSyncStatus('syncing', 'Menyinkronkan data terbaru...');
+    // Revalidate in background
+    loadHomeData(true /* isBackground */);
+  } else {
+    // FIRST TIME: Show attractive interactive pipeline loading screen
+    startTriviaCarousel();
+    document.querySelectorAll('.stat-card').forEach(card => card.classList.add('skeleton-loading'));
+    setSyncStatus('syncing', 'Mengambil data awal...');
+    loadHomeData(false /* isForeground */);
+  }
 });
 
-async function loadHomeData() {
-  const ejournalData = await loadEjournalSummary();
-  const lsegData = await loadLSEGSummary();
-  const stataData = await loadSTATASummary();
+function hydrateFromCachedData() {
+  const ej = loadEjournalFromCache();
+  const lseg = loadLSEGFromCache();
+  const stata = loadSTATAFromCache();
+  const kti = loadKTIFromCache();
+  updateDashboardUI(ej, lseg, stata, kti, false /* do not animate counter on instant hydration */);
+}
 
-  // Update stats
-  const ejTotal = ejournalData ? ejournalData.totalAccess : 0;
-  const lsegTotal = lsegData ? lsegData.totalUsers : 0;
-  const stataTotal = stataData ? stataData.totalUsers : 0;
+function updateDashboardUI(ejData, lsegData, stataData, ktiData, animate = true) {
+  // Remove skeleton state
+  document.querySelectorAll('.stat-card').forEach(card => card.classList.remove('skeleton-loading'));
 
-  if (ejTotal > 0) animateCounter(document.getElementById('stat-ejournal-val'), ejTotal);
-  else document.getElementById('stat-ejournal-val').textContent = '—';
+  const ejTotal = ejData ? ejData.totalAccess : null;
+  const lsegTotal = lsegData ? lsegData.totalUsers : null;
+  const stataTotal = stataData ? stataData.totalUsers : null;
+  const ktiTotal = ktiData ? ktiData.totalPengajuan : null;
 
-  if (lsegTotal > 0) animateCounter(document.getElementById('stat-lseg-val'), lsegTotal);
-  else document.getElementById('stat-lseg-val').textContent = '—';
+  const updateVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (val !== null && val !== undefined) {
+      if (animate) animateCounter(el, val);
+      else el.textContent = formatNumberFull(val);
+    } else {
+      el.textContent = '—';
+    }
+  };
 
-  if (stataTotal > 0) animateCounter(document.getElementById('stat-stata-val'), stataTotal);
-  else document.getElementById('stat-stata-val').textContent = '—';
+  updateVal('stat-ejournal-val', ejTotal);
+  updateVal('stat-lseg-val', lsegTotal);
+  updateVal('stat-stata-val', stataTotal);
+  updateVal('stat-kti-val', ktiTotal);
 
-  const grandTotal = ejTotal + lsegTotal + stataTotal;
-  if (grandTotal > 0) animateCounter(document.getElementById('stat-total-val'), grandTotal);
-  else document.getElementById('stat-total-val').textContent = '—';
+  const subBadge = document.getElementById('stat-kti-subbadge');
+  if (subBadge && ktiData && ktiData.avgSim) {
+    subBadge.textContent = `Rerata ${ktiData.avgSim}%`;
+    subBadge.style.display = 'inline-block';
+  } else if (subBadge) {
+    subBadge.style.display = 'none';
+  }
 
-  // Update last updated
-  const now = new Date();
-  document.getElementById('last-updated').innerHTML = `
-    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-    </svg>
-    Terakhir diperbarui: ${now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-  `;
+  const availableSources = [ejData, lsegData, stataData, ktiData].filter(Boolean).length;
+  const grandTotal = ejTotal + lsegTotal + stataTotal + ktiTotal;
+  updateVal('stat-total-val', availableSources ? grandTotal : null);
+  const totalLabel = document.querySelector('#stat-total .stat-label');
+  if (totalLabel) totalLabel.textContent = availableSources === 4 ? 'Total Aktivitas Layanan' : 'Aktivitas dari ' + availableSources + '/4 Sumber';
 
-  // Render charts
-  renderOverviewChart(ejournalData, lsegData, stataData);
-  renderTopJournalsChart(ejournalData);
-  renderUserDistChart(lsegData, stataData);
+  // Update timestamp
+  const timestamps = Object.values(sourceStates).map(source => source.timestamp).filter(Number.isFinite);
+  const now = timestamps.length ? new Date(Math.min(...timestamps)) : null;
+  const lastUpdatedEl = document.getElementById('last-updated');
+  if (lastUpdatedEl && !now) lastUpdatedEl.textContent = 'Belum ada data tersimpan';
+  if (lastUpdatedEl && now) {
+    lastUpdatedEl.innerHTML = `
+      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      Data terupdate: ${now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+    `;
+  }
+
+  // Render Charts
+  requestAnimationFrame(() => {
+    renderOverviewChart(ejData, lsegData, stataData, ktiData);
+    renderHomeKTISummary(ktiData);
+    renderTopJournalsChart(ejData);
+    renderUserDistChart(lsegData, stataData);
+  });
+}
+
+// ============ Data Fetching Orchestrator ============
+async function loadHomeData(isBackground = false, force = false) {
+  if (!isBackground) {
+    updateLoadingProgress(10, 'Menghubungkan ke server...');
+  }
+
+  let completed = 0;
+  const total = 4;
+  let currentEJ = loadEjournalFromCache();
+  let currentLSEG = loadLSEGFromCache();
+  let currentSTATA = loadSTATAFromCache();
+  let currentKTI = loadKTIFromCache();
+
+  function onSourceDone(sourceKey, data) {
+    completed++;
+    const pct = Math.min(100, Math.round((completed / total) * 100));
+
+    if (!isBackground) {
+      updateLoadingProgress(pct, `Sinkronisasi data (${completed}/${total})...`);
+    }
+
+    if (sourceKey === 'ejournal') {
+      currentEJ = data;
+      const count = data ? data.totalAccess : 0;
+      updatePipelineItem('ejournal', count > 0 ? `✓ ${formatNumber(count)} Akses` : '✓ Selesai', true);
+      const cardVal = document.getElementById('stat-ejournal-val');
+      if (cardVal && count > 0) animateCounter(cardVal, count);
+      document.getElementById('stat-ejournal')?.classList.remove('skeleton-loading');
+      if (data) renderTopJournalsChart(data);
+    } else if (sourceKey === 'lseg') {
+      currentLSEG = data;
+      const count = data ? data.totalUsers : 0;
+      updatePipelineItem('lseg', count > 0 ? `✓ ${count} Penggunaan` : '✓ Selesai', true);
+      const cardVal = document.getElementById('stat-lseg-val');
+      if (cardVal && count > 0) animateCounter(cardVal, count);
+      document.getElementById('stat-lseg')?.classList.remove('skeleton-loading');
+      if (currentLSEG && currentSTATA) renderUserDistChart(currentLSEG, currentSTATA);
+    } else if (sourceKey === 'stata') {
+      currentSTATA = data;
+      const count = data ? data.totalUsers : 0;
+      updatePipelineItem('stata', count > 0 ? `✓ ${count} Penggunaan` : '✓ Selesai', true);
+      const cardVal = document.getElementById('stat-stata-val');
+      if (cardVal && count > 0) animateCounter(cardVal, count);
+      document.getElementById('stat-stata')?.classList.remove('skeleton-loading');
+      if (currentLSEG && currentSTATA) renderUserDistChart(currentLSEG, currentSTATA);
+    } else if (sourceKey === 'kti') {
+      currentKTI = data;
+      const count = data ? data.totalPengajuan : 0;
+      updatePipelineItem('kti', count > 0 ? `✓ ${count} Dokumen` : '✓ Selesai', true);
+      const cardVal = document.getElementById('stat-kti-val');
+      if (cardVal && count > 0) animateCounter(cardVal, count);
+      document.getElementById('stat-kti')?.classList.remove('skeleton-loading');
+      if (data) renderHomeKTISummary(data);
+    }
+
+    // Dynamic grand total update
+    const grandTotal = (currentEJ?.totalAccess || 0) + (currentLSEG?.totalUsers || 0) + (currentSTATA?.totalUsers || 0) + (currentKTI?.totalPengajuan || 0);
+    const totalEl = document.getElementById('stat-total-val');
+    if (totalEl && grandTotal > 0) animateCounter(totalEl, grandTotal);
+    document.getElementById('stat-total')?.classList.remove('skeleton-loading');
+
+    // Early dismiss: if 3 or 4 are completed and in foreground, dismiss smoothly!
+    if (!isBackground && completed >= 3) {
+      setTimeout(() => hideLoadingOverlay(), 400);
+    }
+  }
+
+  // Safety timer: maximum wait 5.5s before revealing dashboard
+  if (!isBackground) {
+    setTimeout(() => {
+      if (!isOverlayDismissed) {
+        updateLoadingProgress(100, 'Membuka dashboard...');
+        hideLoadingOverlay();
+      }
+    }, 5500);
+  }
+
+  // Parallel fetch all 4 endpoints
+  const ejPromise = loadEjournalSummary(force).then(res => { onSourceDone('ejournal', res); return res; });
+  const lsegPromise = loadLSEGSummary(force).then(res => { onSourceDone('lseg', res); return res; });
+  const stataPromise = loadSTATASummary(force).then(res => { onSourceDone('stata', res); return res; });
+  const ktiPromise = loadKTISummary(force).then(res => { onSourceDone('kti', res); return res; });
+
+  const [ejRes, lsegRes, stataRes, ktiRes] = await Promise.allSettled([
+    ejPromise, lsegPromise, stataPromise, ktiPromise
+  ]);
+
+  const finalEJ = ejRes.status === 'fulfilled' ? ejRes.value : currentEJ;
+  const finalLSEG = lsegRes.status === 'fulfilled' ? lsegRes.value : currentLSEG;
+  const finalSTATA = stataRes.status === 'fulfilled' ? stataRes.value : currentSTATA;
+  const finalKTI = ktiRes.status === 'fulfilled' ? ktiRes.value : currentKTI;
+
+  // Final UI sync and chart refresh
+  updateDashboardUI(finalEJ, finalLSEG, finalSTATA, finalKTI, true);
+  const states = Object.values(sourceStates);
+  const failed = states.filter(source => ['stale', 'error'].includes(source.state)).length;
+  const cached = states.some(source => source.state === 'cache');
+  setSyncStatus(failed ? 'warning' : 'done', failed ? failed + ' sumber belum diperbarui' : cached ? 'Menampilkan data tersimpan' : 'Semua sumber berhasil diperbarui');
+  hideLoadingOverlay();
 }
 
 // ============ Load E-Journal Summary ============
-async function loadEjournalSummary() {
+async function loadEjournalSummary(force = false) {
   const apiUrl = getStoredApiUrl('ejournal');
   if (!apiUrl) return loadEjournalFromCache();
 
   try {
-    const data = await fetchWithCache(apiUrl, 'ejournal');
+    const data = await fetchWithCache(apiUrl, 'ejournal', { force });
     return processEjournalData(data);
   } catch (e) {
     return loadEjournalFromCache();
@@ -63,10 +309,11 @@ async function loadEjournalSummary() {
 }
 
 function loadEjournalFromCache() {
-  const cached = localStorage.getItem(API_CACHE_KEY_PREFIX + 'ejournal');
+  const cached = getCachedData('ejournal');
   if (!cached) return null;
   try {
-    const { data } = JSON.parse(cached);
+    const { data, timestamp, isExpired } = cached;
+    if (!sourceStates['ejournal']) setSourceState('ejournal', isExpired ? 'stale' : 'cache', timestamp);
     return processEjournalData(data);
   } catch (e) {
     return null;
@@ -83,11 +330,11 @@ function processEjournalData(data) {
 
   journals.forEach(j => {
     if (j.metricType === 'Total_Item_Requests') {
-      totalAccess += j.total || 0;
+      totalAccess += Number(j.total) || 0;
       if (j.monthly) {
         Object.entries(j.monthly).forEach(([month, val]) => {
           const normMonth = normalizeMonthLabel(month);
-          monthlyTotals[normMonth] = (monthlyTotals[normMonth] || 0) + val;
+          monthlyTotals[normMonth] = (monthlyTotals[normMonth] || 0) + (Number(val) || 0);
         });
       }
     }
@@ -108,12 +355,12 @@ function processEjournalData(data) {
 }
 
 // ============ Load LSEG Summary ============
-async function loadLSEGSummary() {
+async function loadLSEGSummary(force = false) {
   const apiUrl = getStoredApiUrl('lseg');
   if (!apiUrl) return loadLSEGFromCache();
 
   try {
-    const data = await fetchWithCache(apiUrl, 'lseg');
+    const data = await fetchWithCache(apiUrl, 'lseg', { force });
     return processLSEGData(data);
   } catch (e) {
     return loadLSEGFromCache();
@@ -121,10 +368,11 @@ async function loadLSEGSummary() {
 }
 
 function loadLSEGFromCache() {
-  const cached = localStorage.getItem(API_CACHE_KEY_PREFIX + 'lseg');
+  const cached = getCachedData('lseg');
   if (!cached) return null;
   try {
-    const { data } = JSON.parse(cached);
+    const { data, timestamp, isExpired } = cached;
+    if (!sourceStates['lseg']) setSourceState('lseg', isExpired ? 'stale' : 'cache', timestamp);
     return processLSEGData(data);
   } catch (e) {
     return null;
@@ -132,7 +380,8 @@ function loadLSEGFromCache() {
 }
 
 function processLSEGData(data) {
-  if (!data || !Array.isArray(data)) return null;
+  data = Array.isArray(data) ? data : data?.data;
+  if (!Array.isArray(data)) return null;
   const totalUsers = data.length;
 
   // Monthly breakdown from date column
@@ -152,12 +401,12 @@ function processLSEGData(data) {
 }
 
 // ============ Load STATA Summary ============
-async function loadSTATASummary() {
+async function loadSTATASummary(force = false) {
   const apiUrl = getStoredApiUrl('stata');
   if (!apiUrl) return loadSTATAFromCache();
 
   try {
-    const data = await fetchWithCache(apiUrl, 'stata');
+    const data = await fetchWithCache(apiUrl, 'stata', { force });
     return processSTATAData(data);
   } catch (e) {
     return loadSTATAFromCache();
@@ -165,10 +414,11 @@ async function loadSTATASummary() {
 }
 
 function loadSTATAFromCache() {
-  const cached = localStorage.getItem(API_CACHE_KEY_PREFIX + 'stata');
+  const cached = getCachedData('stata');
   if (!cached) return null;
   try {
-    const { data } = JSON.parse(cached);
+    const { data, timestamp, isExpired } = cached;
+    if (!sourceStates['stata']) setSourceState('stata', isExpired ? 'stale' : 'cache', timestamp);
     return processSTATAData(data);
   } catch (e) {
     return null;
@@ -176,12 +426,13 @@ function loadSTATAFromCache() {
 }
 
 function processSTATAData(data) {
-  if (!data || !Array.isArray(data)) return null;
+  data = Array.isArray(data) ? data : data?.data;
+  if (!Array.isArray(data)) return null;
   const totalUsers = data.length;
 
   const monthlyTotals = {};
   data.forEach(row => {
-    const date = parseDate(row.timestamp || row.date || row[0]);
+    const date = parseDate(row.timestamp || row.date || row[5]);
     if (date) {
       const key = getMonthYear(date);
       if (key) monthlyTotals[key] = (monthlyTotals[key] || 0) + 1;
@@ -193,12 +444,63 @@ function processSTATAData(data) {
   return { totalUsers, monthlyTotals, userCategories };
 }
 
+// ============ Load KTI Summary ============
+async function loadKTISummary(force = false) {
+  const apiUrl = getStoredApiUrl('kti');
+  if (!apiUrl) return loadKTIFromCache();
+
+  try {
+    const data = await fetchWithCache(apiUrl, 'kti', { force });
+    return processKTIData(data);
+  } catch (e) {
+    return loadKTIFromCache();
+  }
+}
+
+function loadKTIFromCache() {
+  const cached = getCachedData('kti');
+  if (!cached) return null;
+  try {
+    const { data, timestamp, isExpired } = cached;
+    if (!sourceStates['kti']) setSourceState('kti', isExpired ? 'stale' : 'cache', timestamp);
+    return processKTIData(data);
+  } catch (e) {
+    return null;
+  }
+}
+
+function processKTIRow(row) { return normalizeKTIRow(row); }
+
+function processKTIData(data) {
+  const raw = Array.isArray(data) ? data : (data?.data || []);
+  if (!Array.isArray(raw)) return null;
+
+  const processed = raw.map(processKTIRow);
+  const totalPengajuan = processed.length;
+  const lolos = processed.filter(d => d.status === 'Lolos').length;
+  const revisi = processed.filter(d => d.status === 'Revisi').length;
+  const tidakLolos = processed.filter(d => d.status === 'Tidak Lolos').length;
+
+  const avgSim = averageSimilarity(processed) ?? '—';
+
+  const monthlyTotals = {};
+  processed.forEach(row => {
+    const date = parseDate(row.timestamp);
+    if (date) {
+      const key = getMonthYear(date);
+      if (key) monthlyTotals[key] = (monthlyTotals[key] || 0) + 1;
+    }
+  });
+
+  return { totalPengajuan, lolos, revisi, tidakLolos, avgSim, monthlyTotals, processed };
+}
+
 // ============ Render Charts ============
-function renderOverviewChart(ejData, lsegData, stataData) {
+function renderOverviewChart(ejData, lsegData, stataData, ktiData) {
   const canvas = document.getElementById('chart-monthly-overview');
   const emptyState = document.getElementById('overview-empty');
 
-  const hasAnyData = ejData || lsegData || stataData;
+  const hasAnyData = ejData || lsegData || stataData || ktiData;
   if (!hasAnyData) {
     canvas.style.display = 'none';
     emptyState.style.display = 'flex';
@@ -217,13 +519,15 @@ function renderOverviewChart(ejData, lsegData, stataData) {
   if (stataData && stataData.monthlyTotals) {
     Object.keys(stataData.monthlyTotals).forEach(m => allMonths.add(m));
   }
+  if (ktiData && ktiData.monthlyTotals) {
+    Object.keys(ktiData.monthlyTotals).forEach(m => allMonths.add(m));
+  }
 
-  // Sort months chronologically
   const sortedMonths = Array.from(allMonths).sort((a, b) => {
     const parseMonthLabel = (label) => {
-      const parts = label.split(' ');
-      const monthIdx = MONTH_NAMES.indexOf(parts[0]);
-      const year = parseInt(parts[1]);
+      const parts = String(label || '').split(' ');
+      const monthIdx = Math.max(0, MONTH_NAMES.indexOf(parts[0]));
+      const year = parseInt(parts[1], 10) || 0;
       return year * 12 + monthIdx;
     };
     return parseMonthLabel(a) - parseMonthLabel(b);
@@ -240,7 +544,6 @@ function renderOverviewChart(ejData, lsegData, stataData) {
     datasets.push({
       label: 'E-Journal',
       data: sortedMonths.map(m => ejData.monthlyTotals[m] || 0),
-      backgroundColor: CHART_COLORS.indigo,
       borderColor: CHART_COLORS.indigo,
       borderWidth: 2,
       tension: 0.4,
@@ -270,8 +573,149 @@ function renderOverviewChart(ejData, lsegData, stataData) {
       backgroundColor: CHART_COLORS_BG.emerald,
     });
   }
+  if (ktiData && ktiData.monthlyTotals) {
+    datasets.push({
+      label: 'Uji Similaritas KTI',
+      data: sortedMonths.map(m => ktiData.monthlyTotals[m] || 0),
+      borderColor: CHART_COLORS.violet,
+      borderWidth: 2,
+      tension: 0.4,
+      fill: true,
+      backgroundColor: CHART_COLORS_BG.violet,
+    });
+  }
 
-  createLineChart(canvas.getContext('2d'), sortedMonths, datasets);
+  canvas.style.display = 'block';
+  emptyState.style.display = 'none';
+
+  if (homeCharts.overview) homeCharts.overview.destroy();
+  homeCharts.overview = createLineChart(canvas.getContext('2d'), sortedMonths, datasets);
+}
+
+function renderHomeKTISummary(ktiData) {
+  const chartsContainer = document.getElementById('home-kti-charts-container');
+  const emptyState = document.getElementById('home-kti-empty');
+
+  if (!ktiData || ktiData.totalPengajuan === 0) {
+    for (const id of ['home-kti-total', 'home-kti-lolos', 'home-kti-revisi', 'home-kti-tidak-lolos']) {
+      const element = document.getElementById(id);
+      if (element) {
+        if (element._counterFrame) cancelAnimationFrame(element._counterFrame);
+        element.textContent = ktiData ? '0' : '—';
+      }
+    }
+    for (const id of ['home-kti-lolos-pct', 'home-kti-revisi-pct', 'home-kti-tidak-lolos-pct', 'home-kti-avg']) {
+      const element = document.getElementById(id);
+      if (element) element.textContent = '—';
+    }
+    if (chartsContainer) chartsContainer.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'flex';
+    return;
+  }
+
+  if (chartsContainer) chartsContainer.style.display = 'grid';
+  if (emptyState) emptyState.style.display = 'none';
+
+  const total = ktiData.totalPengajuan;
+  const lolos = ktiData.lolos;
+  const revisi = ktiData.revisi;
+  const tidakLolos = ktiData.tidakLolos;
+  const avgSim = ktiData.avgSim;
+
+  // Animated Counters
+  const elTotal = document.getElementById('home-kti-total');
+  const elLolos = document.getElementById('home-kti-lolos');
+  const elRevisi = document.getElementById('home-kti-revisi');
+  const elTidakLolos = document.getElementById('home-kti-tidak-lolos');
+
+  if (elTotal) animateCounter(elTotal, total);
+  if (elLolos) animateCounter(elLolos, lolos);
+  if (elRevisi) animateCounter(elRevisi, revisi);
+  if (elTidakLolos) animateCounter(elTidakLolos, tidakLolos);
+
+  // Percentages
+  const elLolosPct = document.getElementById('home-kti-lolos-pct');
+  const elRevisiPct = document.getElementById('home-kti-revisi-pct');
+  const elTidakLolosPct = document.getElementById('home-kti-tidak-lolos-pct');
+  const elAvg = document.getElementById('home-kti-avg');
+
+  if (elLolosPct) elLolosPct.textContent = `${total ? ((lolos / total) * 100).toFixed(1) : 0}% dari total`;
+  if (elRevisiPct) elRevisiPct.textContent = `${total ? ((revisi / total) * 100).toFixed(1) : 0}% dari total`;
+  if (elTidakLolosPct) elTidakLolosPct.textContent = `${total ? ((tidakLolos / total) * 100).toFixed(1) : 0}% dari total`;
+  if (elAvg) elAvg.textContent = `${avgSim}%`;
+
+  // Render Doughnut Chart for Status
+  const canvasStatus = document.getElementById('chart-home-kti-status');
+  if (canvasStatus) {
+    if (homeCharts.ktiStatus) homeCharts.ktiStatus.destroy();
+    homeCharts.ktiStatus = createDoughnutChart(
+      canvasStatus.getContext('2d'),
+      ['Lolos', 'Revisi', 'Tidak Lolos', 'Proses / lainnya'],
+      [lolos, revisi, tidakLolos, total - lolos - revisi - tidakLolos],
+      ['rgba(16,185,129,0.85)', 'rgba(245,158,11,0.85)', 'rgba(244,63,94,0.85)', '#94a3b8']
+    );
+  }
+
+  // Render Bar Chart for Distribution
+  const canvasDist = document.getElementById('chart-home-kti-dist');
+  if (canvasDist) {
+    if (homeCharts.ktiDist) homeCharts.ktiDist.destroy();
+
+    const buckets = ['0–10%', '11–20%', '21–30%', '31–40%', '41–50%', '51–60%', '61–70%', '71–80%', '81–100%'];
+    const counts = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+    const bgColors = [
+      'rgba(16,185,129,0.7)', 'rgba(16,185,129,0.7)', 'rgba(16,185,129,0.7)',
+      'rgba(245,158,11,0.7)', 'rgba(245,158,11,0.7)',
+      'rgba(244,63,94,0.7)', 'rgba(244,63,94,0.7)', 'rgba(244,63,94,0.7)', 'rgba(244,63,94,0.7)'
+    ];
+
+    (ktiData.processed || []).forEach(d => {
+      const s = d.similarity;
+      if (!Number.isFinite(s)) return;
+      if (s <= 10) counts[0]++;
+      else if (s <= 20) counts[1]++;
+      else if (s <= 30) counts[2]++;
+      else if (s <= 40) counts[3]++;
+      else if (s <= 50) counts[4]++;
+      else if (s <= 60) counts[5]++;
+      else if (s <= 70) counts[6]++;
+      else if (s <= 80) counts[7]++;
+      else counts[8]++;
+    });
+
+    homeCharts.ktiDist = new Chart(canvasDist.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: buckets,
+        datasets: [{
+          label: 'Jumlah KTI',
+          data: counts,
+          backgroundColor: bgColors,
+          borderRadius: 6,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              afterLabel: (item) => {
+                const tot = counts.reduce((a, b) => a + b, 0);
+                const pct = tot ? ((item.raw / tot) * 100).toFixed(1) : 0;
+                return `(${pct}% dari total)`;
+              },
+            },
+          },
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { precision: 0 } },
+          x: { ticks: { font: { size: 10 } } },
+        },
+      },
+    });
+  }
 }
 
 function renderTopJournalsChart(ejData) {
@@ -284,10 +728,14 @@ function renderTopJournalsChart(ejData) {
     return;
   }
 
+  canvas.style.display = 'block';
+  emptyState.style.display = 'none';
+
   const labels = ejData.topJournals.map(j => j.title);
   const data = ejData.topJournals.map(j => j.total);
 
-  createHorizontalBarChart(
+  if (homeCharts.topJournals) homeCharts.topJournals.destroy();
+  homeCharts.topJournals = createHorizontalBarChart(
     canvas.getContext('2d'),
     labels,
     data,
@@ -317,9 +765,14 @@ function renderUserDistChart(lsegData, stataData) {
     return;
   }
 
+  canvas.style.display = 'block';
+  emptyState.style.display = 'none';
+
   const labels = Object.keys(combined);
   const data = Object.values(combined);
   const colors = [CHART_COLORS.indigo, CHART_COLORS.cyan, CHART_COLORS.amber];
 
-  createDoughnutChart(canvas.getContext('2d'), labels, data, colors);
+  if (homeCharts.userDist) homeCharts.userDist.destroy();
+  homeCharts.userDist = createDoughnutChart(canvas.getContext('2d'), labels, data, colors);
 }
+

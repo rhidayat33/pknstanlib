@@ -32,21 +32,21 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ============ API Connection ============
-function saveAndFetch() {
+async function saveAndFetch() {
   const url = document.getElementById('api-url-input').value.trim();
   if (!url) {
     showToast('Masukkan URL Apps Script terlebih dahulu', 'error');
     return;
   }
-  setStoredApiUrl('ejournal', url);
+  try { setStoredApiUrl('ejournal', url); } catch (error) { showToast(error.message, 'error'); return; }
 
   // Clear old cache so fresh data is fetched
-  localStorage.removeItem('dashboard_cache_ejournal');
 
-  fetchEjournalData(url);
+
+  await fetchEjournalData(url, true);
 }
 
-async function fetchEjournalData(url) {
+async function fetchEjournalData(url, force = false) {
   console.log('[EJ] 🔄 Fetching data from:', url);
 
   document.getElementById('loading').style.display = 'flex';
@@ -57,8 +57,8 @@ async function fetchEjournalData(url) {
   document.getElementById('ej-table-card').style.display = 'none';
 
   try {
-    const data = await fetchWithCache(url, 'ejournal');
-    console.log('[EJ] 📦 Raw API response:', data);
+    const data = await fetchWithCache(url, 'ejournal', { force });
+
 
     // Validate response
     if (data.error) {
@@ -71,20 +71,20 @@ async function fetchEjournalData(url) {
       throw new Error('Format data tidak valid — expected { journals: [...] }');
     }
 
-    if (data.journals.length === 0) {
-      throw new Error('Tidak ada data jurnal ditemukan');
-    }
+
 
     // Normalize monthly keys and monthColumns
     const normalizedJournals = data.journals.map(j => {
       const normalizedMonthly = {};
       if (j.monthly) {
         Object.entries(j.monthly).forEach(([m, v]) => {
-          normalizedMonthly[normalizeMonthLabel(m)] = v;
+          const month = normalizeMonthLabel(m);
+          normalizedMonthly[month] = (normalizedMonthly[month] || 0) + (Number(v) || 0);
         });
       }
       return {
         ...j,
+        total: Number(j.total) || 0,
         monthly: normalizedMonthly
       };
     });
@@ -110,7 +110,7 @@ async function fetchEjournalData(url) {
       ejournalData.journals.forEach(j => {
         Object.keys(j.monthly || {}).forEach(k => monthSet.add(k));
       });
-      ejournalData.monthColumns = [...monthSet].sort();
+      ejournalData.monthColumns = sortMonthYearEntries([...monthSet].map(month => [month, 0])).map(([month]) => month);
       console.log('[EJ] 🔄 Extracted monthColumns:', ejournalData.monthColumns);
     }
 
@@ -133,7 +133,7 @@ async function fetchEjournalData(url) {
     }
 
     document.getElementById('loading').style.display = 'none';
-    showToast(`Berhasil mengambil ${ejournalData.journals.length} data jurnal`, 'success');
+    if (sourceStates['ejournal']?.state !== 'stale') showToast(`Berhasil mengambil ${ejournalData.journals.length} data jurnal`, 'success');
 
     populateFilters();
     renderAll();
@@ -194,7 +194,7 @@ function populateFilters() {
       metricSelect.appendChild(opt);
     }
   });
-  if (currentMetric) metricSelect.value = currentMetric;
+  metricSelect.value = availableMetrics.includes(currentMetric) ? currentMetric : (availableMetrics.includes('Total_Item_Requests') ? 'Total_Item_Requests' : availableMetrics[0] || 'Total_Item_Requests');
 
   console.log('[EJ] 📊 Metric filter populated:', availableMetrics, '| Selected:', metricSelect.value);
 }
@@ -215,14 +215,6 @@ function getFilteredJournals() {
     if (filtered.length > 0) {
       console.log(`[EJ] 🔄 Case-insensitive match found ${filtered.length} journals`);
     }
-  }
-
-  // Last resort: use first available metric type
-  if (filtered.length === 0 && ejournalData.metricTypes.length > 0) {
-    console.warn(`[EJ] ⚠️ No match for "${metric}", falling back to "${ejournalData.metricTypes[0]}"`);
-    filtered = ejournalData.journals.filter(j =>
-      j.metricType === ejournalData.metricTypes[0]
-    );
   }
 
   if (search) {
@@ -256,14 +248,14 @@ function getFilteredMonths() {
     ejournalData.journals.forEach(j => {
       Object.keys(j.monthly || {}).forEach(k => monthSet.add(k));
     });
-    months = [...monthSet].sort();
+    months = sortMonthYearEntries([...monthSet].map(month => [month, 0])).map(([month]) => month);
     ejournalData.monthColumns = months;
   }
 
   if (year !== 'all') {
     months = months.filter(m => m.includes(year));
   }
-  return months;
+  return sortMonthYearEntries([...new Set(months)].map(month => [month, 0])).map(([month]) => month);
 }
 
 function onFilterChange() {
@@ -416,6 +408,7 @@ function renderMetricsChart() {
 
 // ============ Table ============
 function renderTable() {
+  document.getElementById('ej-metric-heading').textContent = document.getElementById('filter-metric').selectedOptions[0]?.textContent || 'Metrik terpilih';
   const filtered = getFilteredJournals().sort((a, b) => (b.total || 0) - (a.total || 0));
   const totalPages = Math.ceil(filtered.length / EJ_PAGE_SIZE);
   ejCurrentPage = Math.min(ejCurrentPage, totalPages || 1);
@@ -444,11 +437,12 @@ function renderTable() {
   tbody.innerHTML = pageData.map((j, i) => `
     <tr>
       <td>${start + i + 1}</td>
-      <td style="white-space:normal; min-width:250px;">${j.title}</td>
+      <td style="white-space:normal; min-width:250px;">${escapeHTML(j.title)}</td>
       <td>${formatNumberFull(j.total)}</td>
       <td>${formatNumberFull(uniqueMap[j.title] || 0)}</td>
     </tr>
   `).join('');
+  if (!pageData.length) tbody.innerHTML = '<tr><td colspan="4" class="table-empty">Tidak ada data yang cocok. Coba ubah atau reset filter.</td></tr>';
 
   const totalFiltered = filtered.length;
   document.getElementById('ej-page-info').textContent =
@@ -456,40 +450,8 @@ function renderTable() {
       ? `Menampilkan ${start + 1}–${Math.min(start + EJ_PAGE_SIZE, totalFiltered)} dari ${totalFiltered} jurnal`
       : 'Tidak ada data';
 
-  const btnContainer = document.getElementById('ej-page-buttons');
-  btnContainer.innerHTML = '';
-
-  if (totalPages > 1) {
-    const prevBtn = document.createElement('button');
-    prevBtn.className = 'pagination-btn';
-    prevBtn.textContent = '←';
-    prevBtn.disabled = ejCurrentPage === 1;
-    prevBtn.onclick = () => { ejCurrentPage--; renderTable(); };
-    btnContainer.appendChild(prevBtn);
-
-    for (let p = 1; p <= totalPages; p++) {
-      if (totalPages > 7 && p > 3 && p < totalPages - 1 && Math.abs(p - ejCurrentPage) > 1) {
-        if (p === 4 || p === totalPages - 2) {
-          const dots = document.createElement('span');
-          dots.textContent = '...';
-          dots.style.padding = '6px 8px';
-          dots.style.color = 'var(--text-muted)';
-          btnContainer.appendChild(dots);
-        }
-        continue;
-      }
-      const btn = document.createElement('button');
-      btn.className = `pagination-btn ${p === ejCurrentPage ? 'active' : ''}`;
-      btn.textContent = p;
-      btn.onclick = () => { ejCurrentPage = p; renderTable(); };
-      btnContainer.appendChild(btn);
-    }
-
-    const nextBtn = document.createElement('button');
-    nextBtn.className = 'pagination-btn';
-    nextBtn.textContent = '→';
-    nextBtn.disabled = ejCurrentPage === totalPages;
-    nextBtn.onclick = () => { ejCurrentPage++; renderTable(); };
-    btnContainer.appendChild(nextBtn);
-  }
+  renderPagination('ej-page-buttons', ejCurrentPage, totalPages, page => {
+    ejCurrentPage = page;
+    renderTable();
+  });
 }

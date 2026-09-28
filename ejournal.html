@@ -14,7 +14,7 @@
 </head>
 <body>
   <div class="app-layout">
-    <button class="mobile-menu-btn" id="mobile-menu-btn">
+    <button type="button" aria-label="Buka menu navigasi" aria-controls="sidebar" aria-expanded="false" class="mobile-menu-btn" id="mobile-menu-btn">
       <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none">
         <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
       </svg>
@@ -25,7 +25,7 @@
     <main class="main-content">
       <div class="page-header">
         <h1>E-Journal</h1>
-        <p class="page-description" style="white-space: nowrap;">Data statistik penggunaan jurnal elektronik yang dilanggan oleh PKN STAN.</p>
+        <p class="page-description" >Data statistik penggunaan jurnal elektronik yang dilanggan oleh PKN STAN.</p>
         <button onclick="const p = document.getElementById('config-panel'); p.style.display = p.style.display === 'none' ? 'block' : 'none';" style="background: none; border: none; font-size: 12px; cursor: pointer; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; font-family: 'Inter', sans-serif;">
           <span>⚙️ Konfigurasi URL</span>
         </button>
@@ -35,7 +35,7 @@
       <div class="config-panel" id="config-panel" style="display: none;">
         <div class="config-title">⚙️ Konfigurasi Sumber Data</div>
         <div class="config-input-group">
-          <input type="text" id="api-url-input" placeholder="Paste URL Google Apps Script di sini...">
+          <input type="url" aria-label="URL sumber data Google Apps Script" id="api-url-input" placeholder="Paste URL Google Apps Script di sini...">
           <button class="config-btn" id="config-btn" onclick="saveAndFetch()">Hubungkan</button>
         </div>
         <div class="config-hint">Masukkan URL deployment Apps Script. Lihat <a href="tutorial/tutorial.html">tutorial</a> untuk panduan.</div>
@@ -174,7 +174,7 @@
               <tr>
                 <th>No</th>
                 <th>Judul Jurnal</th>
-                <th>Total Requests</th>
+                <th id="ej-metric-heading">Metrik terpilih</th>
                 <th>Unique Requests</th>
               </tr>
             </thead>
@@ -197,7 +197,9 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="js/data-utils.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/dashboard-tools.js"></script>
   <script src="js/ejournal.js"></script>
 </body>
 </html>

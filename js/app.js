@@ -16,6 +16,10 @@ checkAuth();
 
 function logout() {
   sessionStorage.removeItem('dashboard_auth_token');
+  // Remove cached usage records from this browser when the user signs out.
+  for (const key of ['ejournal', 'lseg', 'stata', 'kti']) {
+    localStorage.removeItem('dashboard_cache_' + key);
+  }
   const isSubdir = window.location.pathname.includes('/tutorial/');
   const loginUrl = isSubdir ? '../login.html' : 'login.html';
   window.location.href = loginUrl;
@@ -168,21 +172,40 @@ function classifyUser(nipNim) {
 // ============ Date Utilities ============
 function parseDate(dateStr) {
   if (!dateStr) return null;
-  const d = new Date(dateStr);
+  if (dateStr instanceof Date) return isNaN(dateStr.getTime()) ? null : dateStr;
+
+  const str = String(dateStr).trim();
+  if (!str) return null;
+
+  // Format DD/MM/YYYY or DD-MM-YYYY or DD/MM/YYYY HH:mm:ss
+  const ddmmyyyy = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if (ddmmyyyy) {
+    const day = parseInt(ddmmyyyy[1], 10);
+    const month = parseInt(ddmmyyyy[2], 10) - 1;
+    const year = parseInt(ddmmyyyy[3], 10);
+    const hours = parseInt(ddmmyyyy[4] || '0', 10);
+    const mins = parseInt(ddmmyyyy[5] || '0', 10);
+    const secs = parseInt(ddmmyyyy[6] || '0', 10);
+    const d = new Date(year, month, day, hours, mins, secs);
+    if (d.getFullYear() === year && d.getMonth() === month && d.getDate() === day && hours < 24 && mins < 60 && secs < 60) return d;
+    return null;
+  }
+
+  const d = new Date(str);
   return isNaN(d.getTime()) ? null : d;
 }
 
 function getMonthYear(date) {
   if (!date) return null;
-  const d = date instanceof Date ? date : new Date(date);
-  if (isNaN(d.getTime())) return null;
+  const d = date instanceof Date ? date : parseDate(date);
+  if (!d || isNaN(d.getTime())) return null;
   return `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 function getYear(date) {
   if (!date) return null;
-  const d = date instanceof Date ? date : new Date(date);
-  if (isNaN(d.getTime())) return null;
+  const d = date instanceof Date ? date : parseDate(date);
+  if (!d || isNaN(d.getTime())) return null;
   return d.getFullYear();
 }
 
@@ -191,26 +214,17 @@ function normalizeMonthLabel(label) {
   
   const cleanLabel = String(label).trim();
   
-  // Format: "Jan 2023" or similar
-  if (/^[A-Za-z]{3}\s\d{4}$/.test(cleanLabel)) {
-    return cleanLabel;
-  }
-  
-  // Format: "Jan-2023" or "Jan/2023"
-  const dashMatch = cleanLabel.match(/^([A-Za-z]{3})[-/](\d{4})$/);
-  if (dashMatch) {
-    let m = dashMatch[1];
-    if (m.toLowerCase() === 'may') m = 'Mei';
-    if (m.toLowerCase() === 'aug') m = 'Agu';
-    if (m.toLowerCase() === 'oct') m = 'Okt';
-    if (m.toLowerCase() === 'dec') m = 'Des';
-    m = m.charAt(0).toUpperCase() + m.slice(1).toLowerCase();
-    return `${m} ${dashMatch[2]}`;
+  const monthMatch = cleanLabel.match(/^([A-Za-z]{3})[\s/-]+(\d{4})$/);
+  if (monthMatch) {
+    const aliases = { may: 'Mei', aug: 'Agu', oct: 'Okt', dec: 'Des' };
+    const raw = monthMatch[1].toLowerCase();
+    const month = aliases[raw] || raw.charAt(0).toUpperCase() + raw.slice(1);
+    return month + ' ' + monthMatch[2];
   }
 
   // Parse raw date string e.g. "Sun Jan 01 2023..." or ISO format
-  const parsedDate = new Date(cleanLabel);
-  if (!isNaN(parsedDate.getTime())) {
+  const parsedDate = parseDate(cleanLabel);
+  if (parsedDate && !isNaN(parsedDate.getTime())) {
     const monthIndex = parsedDate.getMonth();
     const year = parsedDate.getFullYear();
     return `${MONTH_NAMES[monthIndex]} ${year}`;
@@ -226,7 +240,7 @@ function groupBy(arr, keyFn) {
     if (!acc[key]) acc[key] = [];
     acc[key].push(item);
     return acc;
-  }, {});
+  }, Object.create(null));
 }
 
 function countBy(arr, keyFn) {
@@ -238,8 +252,27 @@ function countBy(arr, keyFn) {
 
 function sortObjectByValue(obj, desc = true) {
   return Object.fromEntries(
-    Object.entries(obj).sort((a, b) => desc ? b[1] - a[1] : a[1] - b[1])
+    Object.entries(obj).sort((a, b) => {
+      const valA = Number(a[1]) || 0;
+      const valB = Number(b[1]) || 0;
+      return desc ? valB - valA : valA - valB;
+    })
   );
+}
+
+function sortMonthYearEntries(entries) {
+  return entries.sort((a, b) => {
+    const pa = String(a[0] || '').split(' ');
+    const pb = String(b[0] || '').split(' ');
+    const ya = parseInt(pa[1], 10) || 0;
+    const yb = parseInt(pb[1], 10) || 0;
+    if (ya !== yb) return ya - yb;
+    const ma = MONTH_NAMES.indexOf(pa[0]);
+    const mb = MONTH_NAMES.indexOf(pb[0]);
+    const idxA = ma >= 0 ? ma : 0;
+    const idxB = mb >= 0 ? mb : 0;
+    return idxA - idxB;
+  });
 }
 
 function topN(obj, n = 10) {
@@ -251,51 +284,71 @@ function topN(obj, n = 10) {
 const API_CACHE_KEY_PREFIX = 'dashboard_cache_';
 const API_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
-async function fetchWithCache(url, cacheKey) {
-  // Check cache
-  const cached = localStorage.getItem(API_CACHE_KEY_PREFIX + cacheKey);
-  if (cached) {
-    try {
-      const { data, timestamp } = JSON.parse(cached);
-      if (Date.now() - timestamp < API_CACHE_TTL) {
-        return data;
-      }
-    } catch (e) { /* ignore */ }
-  }
+const sourceStates = {};
 
-  // Append secret token to Apps Script URL if it doesn't already have it
-  let fetchUrl = url;
-  if (url && (url.includes('script.google.com') || url.includes('googleusercontent.com'))) {
-    try {
-      const urlObj = new URL(url);
-      if (!urlObj.searchParams.has('secret')) {
-        urlObj.searchParams.set('secret', 'pknstanlib_secret_key_2026');
-        fetchUrl = urlObj.toString();
-      }
-    } catch (err) {
-      console.error('[Auth] URL parse error:', err);
+function getCachedData(cacheKey, url = getStoredApiUrl(cacheKey)) {
+  try {
+    const cached = JSON.parse(localStorage.getItem(API_CACHE_KEY_PREFIX + cacheKey));
+    if (!cached || cached.url !== url || !Number.isFinite(cached.timestamp)) return null;
+    validateApiData(cached.data, cacheKey);
+    return { ...cached, isExpired: Date.now() - cached.timestamp > API_CACHE_TTL };
+  } catch { return null; }
+}
+
+function validateApiData(data, key) {
+  if (!data || data.error) throw new Error(data?.error || 'Respons sumber data kosong');
+  const rows = key === 'ejournal' ? data.journals : (Array.isArray(data) ? data : data.data);
+  if (!Array.isArray(rows) || rows.some(row => !row || typeof row !== 'object')) {
+    throw new Error('Format respons sumber data tidak valid');
+  }
+  if (key === 'ejournal' && rows.some(row => typeof row.title !== 'string' || typeof row.metricType !== 'string' || !row.monthly || typeof row.monthly !== 'object' || Array.isArray(row.monthly))) {
+    throw new Error('Format data jurnal tidak valid');
+  }
+}
+
+function setSourceState(key, state, timestamp, message = '') {
+  sourceStates[key] = { state, timestamp, message };
+  document.dispatchEvent(new CustomEvent('dashboard:source', { detail: { key, ...sourceStates[key] } }));
+}
+
+async function fetchWithCache(url, cacheKey, { force = false } = {}) {
+  const cached = getCachedData(cacheKey, url);
+  if (!force && cached && !cached.isExpired) {
+    setSourceState(cacheKey, 'cache', cached.timestamp);
+    return cached.data;
+  }
+  const controller = new AbortController();
+  // Apps Script can need extra startup time after a period of inactivity.
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  setSourceState(cacheKey, 'loading', cached?.timestamp);
+  try {
+    const target = new URL(url);
+    if (target.protocol !== 'https:' || target.hostname !== 'script.google.com' || !/^\/macros\/s\/[^/]+\/exec$/.test(target.pathname)) {
+      throw new Error('Gunakan URL deployment Google Apps Script berakhiran /exec');
     }
-  }
-
-  // Fetch
-  const response = await fetch(fetchUrl);
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const data = await response.json();
-
-  // Store cache
-  localStorage.setItem(API_CACHE_KEY_PREFIX + cacheKey, JSON.stringify({
-    data,
-    timestamp: Date.now()
-  }));
-
-  return data;
+    if (!target.searchParams.has('secret')) target.searchParams.set('secret', 'pknstanlib_secret_key_2026');
+    const response = await fetch(target.toString(), { signal: controller.signal });
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const data = await response.json();
+    validateApiData(data, cacheKey);
+    const timestamp = Date.now();
+    try { localStorage.setItem(API_CACHE_KEY_PREFIX + cacheKey, JSON.stringify({ data, timestamp, url })); } catch { /* Browsing still works without storage. */ }
+    setSourceState(cacheKey, 'live', timestamp);
+    return data;
+  } catch (error) {
+    const message = error.name === 'AbortError' ? 'Sumber data tidak merespons dalam 30 detik' : error.message;
+    setSourceState(cacheKey, cached ? 'stale' : 'error', cached?.timestamp, message);
+    if (cached) return cached.data;
+    throw new Error(message);
+  } finally { clearTimeout(timeoutId); }
 }
 
 // ============ Default API URLs ============
 const DEFAULT_API_URLS = {
   ejournal: 'https://script.google.com/macros/s/AKfycbziM_TSDKHuo-aTUMVw-oHvGR7pOR3r61sSlHdhVsPXP5rOd5dpMUm1hxwuisulgBAL/exec',
   lseg: 'https://script.google.com/macros/s/AKfycbx65Th0U5mwzaqTeJnY26_2u3iLuqZq4BUKvQIZb-q-B1XmdMEJyRsGmAn_eYSPLa6S/exec',
-  stata: 'https://script.google.com/macros/s/AKfycbx0PHzUqIW_auR8qWtvkou56Pb49LvAJSh76WrqVui2rw3VrNOvj54KcxeUd1SsrZtL/exec'
+  stata: 'https://script.google.com/macros/s/AKfycbx0PHzUqIW_auR8qWtvkou56Pb49LvAJSh76WrqVui2rw3VrNOvj54KcxeUd1SsrZtL/exec',
+  kti: 'https://script.google.com/macros/s/AKfycbz6l74RiHUdgP0T3Py092sri5imaw8xjP15gNvqOFoL0g_aCyrOST80HmqHcW5suwyr/exec'
 };
 
 function getStoredApiUrl(key) {
@@ -303,11 +356,17 @@ function getStoredApiUrl(key) {
 }
 
 function setStoredApiUrl(key, url) {
+  const target = new URL(url);
+  if (target.protocol !== 'https:' || target.hostname !== 'script.google.com' || !/^\/macros\/s\/[^/]+\/exec$/.test(target.pathname)) throw new Error('Gunakan URL Google Apps Script berakhiran /exec');
   localStorage.setItem('api_url_' + key, url);
 }
 
 // ============ Animated Counter ============
 function animateCounter(el, target, duration = 1000) {
+  if (!el) return;
+  if (el._counterFrame) cancelAnimationFrame(el._counterFrame);
+  el.title = formatNumberFull(target);
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { el.textContent = formatNumber(target); return; }
   const start = 0;
   const startTime = performance.now();
 
@@ -319,13 +378,13 @@ function animateCounter(el, target, duration = 1000) {
     el.textContent = formatNumber(current);
 
     if (progress < 1) {
-      requestAnimationFrame(update);
+      el._counterFrame = requestAnimationFrame(update);
     } else {
       el.textContent = formatNumber(target);
     }
   }
 
-  requestAnimationFrame(update);
+  el._counterFrame = requestAnimationFrame(update);
 }
 
 // ============ Toast Notifications ============
@@ -335,6 +394,7 @@ function showToast(message, type = 'info') {
 
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
+  toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
   toast.textContent = message;
   toast.style.cssText = `
     position: fixed; bottom: 24px; right: 24px; z-index: 1000;
@@ -356,6 +416,7 @@ const ICONS = {
   chart: `<svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
   database: `<svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>`,
   help: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  similarity: `<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
   upload: `<svg viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>`,
   search: `<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
   users: `<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
@@ -400,20 +461,24 @@ function getSidebarHTML(activePage) {
         <span class="nav-icon">${ICONS.database}</span>
         <span>STATA</span>
       </a>
+      <a href="similaritas-kti.html" class="nav-item ${activePage === 'kti' ? 'active' : ''}">
+        <span class="nav-icon">${ICONS.similarity}</span>
+        <span>Uji Similaritas KTI</span>
+      </a>
       <div class="nav-section-label">Lainnya</div>
       <a href="tutorial/tutorial.html" class="nav-item ${activePage === 'tutorial' ? 'active' : ''}">
         <span class="nav-icon">${ICONS.help}</span>
         <span>Tutorial</span>
       </a>
       <div class="nav-section-label">Akun</div>
-      <a onclick="logout()" class="nav-item" style="color: var(--accent-rose);">
+      <button type="button" onclick="logout()" class="nav-item" style="color: var(--accent-rose);">
         <span class="nav-icon">${ICONS.logout}</span>
         <span>Keluar</span>
-      </a>
+      </button>
     </nav>
     <div class="sidebar-footer">
       <div class="sidebar-footer-text">
-        © 2025 Perpustakaan PKN STAN<br>Dashboard E-Resources v1.0
+        © 2026 Perpustakaan PKN STAN<br>Dashboard E-Resources v1.0
       </div>
     </div>
   `;
@@ -562,4 +627,5 @@ function createDoughnutChart(ctx, labels, data, colors) {
 document.addEventListener('DOMContentLoaded', () => {
   initChartDefaults();
   initNavigation();
+  initDashboardTools();
 });
