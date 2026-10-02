@@ -27,9 +27,9 @@ test('similarity: distinguish missing values from zero and enforce valid range',
   for (const value of [null, undefined, '', ' ', 'n/a', -1, 101, Infinity]) assert.equal(c.parseSimilarity(value), null);
   assert.equal(c.parseSimilarity('0%'), 0);
   assert.equal(c.parseSimilarity('30,5%'), 30.5);
-  assert.equal(c.normalizeKTIRow({ similarity: '' }).status, 'Proses');
-  assert.equal(c.normalizeKTIRow({ similarity: 0 }).status, 'Lolos');
-  assert.equal(c.normalizeKTIRow(['2026-01-01', '001', 'A', 'P', 'KTI', 'Title', '31%']).status, 'Revisi');
+  assert.equal(c.normalizeKTIRow({ similarity: '' }).status, undefined);
+  assert.equal(c.normalizeKTIRow({ similarity: 0, status: 'Lolos' }).status, undefined);
+  assert.equal(c.normalizeKTIRow(['2026-01-01', '001', 'A', 'P', 'KTI', 'Title', '31%']).status, undefined);
   assert.equal(c.averageSimilarity([{ similarity: 0 }, { similarity: 30 }, { similarity: null }]), '15.0');
   assert.equal(c.averageSimilarity([{ similarity: null }]), null);
 });
@@ -95,8 +95,9 @@ test('home KTI matches details and STATA array timestamp uses the sixth field', 
   const summary = c.processKTIData([{ similarity: 0 }, { similarity: 60 }, { similarity: null }]);
   assert.equal(summary.avgSim, '30.0');
   assert.equal(summary.totalPengajuan, 3);
-  assert.equal(summary.lolos, 1);
-  assert.equal(summary.tidakLolos, 1);
+  assert.equal(summary.scored, 2);
+  assert.equal(summary.unscored, 1);
+  assert.equal(summary.lolos, undefined);
   const stata = c.processSTATAData([['A', '3001', '', 'P', 'Research', '2026-09-01']]);
   assert.equal(stata.monthlyTotals['Sep 2026'], 1);
 });
@@ -117,7 +118,7 @@ test('refresh KTI replaces processed cache instead of showing previous rows', as
   assert.equal(c.getProcessedData()[0].nama, 'Second');
 });
 
-test('Apps Script KTI reads percentage formats and leaves missing results pending', () => {
+test('Apps Script KTI reads percentage formats without inferring outcomes', () => {
   const values = [
     ['', '1', 'A', 'P', 'KTI', 'Title', 0.4, ''],
     ['', '2', 'B', 'P', 'KTI', 'Title', '', ''],
@@ -132,9 +133,9 @@ test('Apps Script KTI reads percentage formats and leaves missing results pendin
   vm.runInContext(fs.readFileSync(path.join(root, 'apps-script/kti-apps-script.js'), 'utf8'), c);
   const result = vm.runInContext('doGet({parameter:{secret:SECRET_TOKEN}})', c);
   assert.equal(result[0].similarity, 40);
-  assert.equal(result[0].status, 'Revisi');
+  assert.equal(result[0].status, '');
   assert.equal(result[1].similarity, null);
-  assert.equal(result[1].status, 'Proses');
+  assert.equal(result[1].status, '');
   assert.equal(result[2].similarity, 0);
 });
 
@@ -146,7 +147,7 @@ test('legacy Details Report mapping restores date and actual similarity without 
   assert.equal(result.nim, '');
   assert.equal(result.prodi, 'Tidak tersedia');
   assert.equal(result.similarity, 61);
-  assert.equal(result.status, 'Tidak Lolos');
+  assert.equal(result.status, undefined);
   assert.equal(c.processKTIData([row]).monthlyTotals['Jan 2026'], 1);
   // A normal form remains unchanged even if a name resembles an email address.
   assert.equal(c.normalizeKTIRow({ ...row, prodi: 'Akuntansi', similarity: 25 }).similarity, 25);
@@ -167,10 +168,10 @@ test('Apps Script recognizes six-column Details Reports by header, including rea
   const result = vm.runInContext('doGet({parameter:{secret:SECRET_TOKEN}})', c);
   assert.equal(result.length, 2);
   assert.equal(result[0].similarity, 0);
-  assert.equal(result[0].status, 'Lolos');
+  assert.equal(result[0].status, '');
   assert.equal(result[0].prodi, 'Tidak tersedia');
   assert.equal(result[1].similarity, 61);
-  assert.equal(result[1].status, 'Tidak Lolos');
+  assert.equal(result[1].status, '');
 });
 
 test('CSV export includes every filtered row rather than just the visible page', async () => {
@@ -188,4 +189,46 @@ test('CSV export includes every filtered row rather than just the visible page',
   assert.equal(csv.split('\r\n').length, 26);
   assert.ok(csv.includes('"00024"'));
   assert.ok(csv.includes('"\'=1+1"'));
+});
+
+test('KTI periods and filters handle multiple years, zero scores, missing dates and empty selections', () => {
+  const c = context(); c.load('similaritas-kti.js');
+  c.run(`ktiRawData = [
+    {timestamp:'15/01/2025',nama:'A',similarity:0,status:'Lolos'},
+    {timestamp:'20/01/2025',nama:'B',similarity:40},
+    {timestamp:'15/02/2025',nama:'A',similarity:null},
+    {timestamp:'15/01/2026',nama:'A',similarity:100},
+    {timestamp:'bad-date',nama:'C',similarity:20}
+  ]`);
+  const elements = {'kti-filter-year':{value:'all'}, 'kti-filter-month':{value:'all'}};
+  c.document.getElementById = id => elements[id];
+  const data = c.getFilteredData();
+  assert.equal(data.length, 5);
+  const years = c.summarizeKTIPeriods(data, 'year');
+  assert.deepEqual(Array.from(years, group => [group.key, group.total, group.scored, group.average]), [['2025',3,2,'20.0'],['2026',1,1,'100.0']]);
+  const months = c.summarizeKTIPeriods(data, 'month');
+  assert.deepEqual(Array.from(months, group => [group.key, group.total, group.average]), [['2025-01',2,'20.0'],['2025-02',1,null],['2026-01',1,'100.0']]);
+  elements['kti-filter-month'].value = '1';
+  assert.equal(c.getFilteredData().length, 3);
+  elements['kti-filter-year'].value = '2025';
+  assert.equal(c.getFilteredData().length, 2);
+  elements['kti-filter-month'].value = '3';
+  assert.equal(c.getFilteredData().length, 0);
+  const distribution = c.similarityDistribution([0,10,10.5,20,90,90.1,100,null].map(similarity => ({similarity})));
+  assert.deepEqual(Array.from(distribution.counts), [2,2,0,0,0,0,0,0,1,2]);
+});
+
+test('KTI export omits inferred statuses and unavailable form fields', async () => {
+  const c = context(); c.load('dashboard-tools.js');
+  let blob;
+  c.Blob = Blob;
+  c.URL = class extends URL { static createObjectURL(value) { blob = value; return 'blob:test'; } static revokeObjectURL() {} };
+  c.document.createElement = () => ({click() {}});
+  c.setTimeout = callback => callback(); c.showToast = () => {};
+  c.getFilteredData = () => [{timestamp:'2026-01-15',nama:'Test',similarity:0,status:'Lolos'}];
+  c.exportCurrentData('kti');
+  const csv = await blob.text();
+  assert.ok(csv.includes('"Similaritas (%)"'));
+  assert.ok(csv.includes('"0"'));
+  assert.ok(!/Status|Lolos|NIM|Judul/.test(csv));
 });

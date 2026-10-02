@@ -10,7 +10,7 @@ const TRIVIA_LIST = [
   "E-Resources PKN STAN menyediakan akses ribuan jurnal bereputasi Scopus & WoS via Emerald Insight.",
   "LSEG Workspace menyediakan data pasar finansial global, saham, dan ESG score terlengkap untuk riset Anda.",
   "Software STATA berlisensi resmi tersedia di laboratorium komputer perpustakaan untuk analisis ekonometrika.",
-  "Batas toleransi uji similaritas KTI yang disarankan Perpustakaan PKN STAN adalah maksimal 30%.",
+  "Ringkasan similaritas menggunakan skor yang tercatat dalam laporan sumber.",
   "Akses e-resources dapat digunakan oleh seluruh dosen dan mahasiswa aktif secara gratis.",
   "Pemberitahuan hasil uji similaritas KTI diproses secara transparan dan terdata di sistem perpustakaan.",
   "Tips: Anda dapat melihat rincian setiap layanan melalui menu navigasi di sebelah kiri."
@@ -477,9 +477,8 @@ function processKTIData(data) {
 
   const processed = raw.map(processKTIRow);
   const totalPengajuan = processed.length;
-  const lolos = processed.filter(d => d.status === 'Lolos').length;
-  const revisi = processed.filter(d => d.status === 'Revisi').length;
-  const tidakLolos = processed.filter(d => d.status === 'Tidak Lolos').length;
+  const scored = processed.filter(row => Number.isFinite(row.similarity)).length;
+  const unscored = processed.length - scored;
 
   const avgSim = averageSimilarity(processed) ?? '—';
 
@@ -492,7 +491,7 @@ function processKTIData(data) {
     }
   });
 
-  return { totalPengajuan, lolos, revisi, tidakLolos, avgSim, monthlyTotals, processed };
+  return { totalPengajuan, scored, unscored, avgSim, monthlyTotals, processed };
 }
 
 // ============ Render Charts ============
@@ -593,129 +592,25 @@ function renderOverviewChart(ejData, lsegData, stataData, ktiData) {
 }
 
 function renderHomeKTISummary(ktiData) {
-  const chartsContainer = document.getElementById('home-kti-charts-container');
-  const emptyState = document.getElementById('home-kti-empty');
-
-  if (!ktiData || ktiData.totalPengajuan === 0) {
-    for (const id of ['home-kti-total', 'home-kti-lolos', 'home-kti-revisi', 'home-kti-tidak-lolos']) {
-      const element = document.getElementById(id);
-      if (element) {
-        if (element._counterFrame) cancelAnimationFrame(element._counterFrame);
-        element.textContent = ktiData ? '0' : '—';
-      }
-    }
-    for (const id of ['home-kti-lolos-pct', 'home-kti-revisi-pct', 'home-kti-tidak-lolos-pct', 'home-kti-avg']) {
-      const element = document.getElementById(id);
-      if (element) element.textContent = '—';
-    }
-    if (chartsContainer) chartsContainer.style.display = 'none';
-    if (emptyState) emptyState.style.display = 'flex';
-    return;
+  const container = document.getElementById('home-kti-charts-container');
+  const empty = document.getElementById('home-kti-empty');
+  for (const [id, value] of [['home-kti-total', ktiData?.totalPengajuan], ['home-kti-scored', ktiData?.scored], ['home-kti-unscored', ktiData?.unscored]]) {
+    const el = document.getElementById(id);
+    if (el) { if (value === undefined) el.textContent = '—'; else animateCounter(el, value); }
   }
-
-  if (chartsContainer) chartsContainer.style.display = 'grid';
-  if (emptyState) emptyState.style.display = 'none';
-
-  const total = ktiData.totalPengajuan;
-  const lolos = ktiData.lolos;
-  const revisi = ktiData.revisi;
-  const tidakLolos = ktiData.tidakLolos;
-  const avgSim = ktiData.avgSim;
-
-  // Animated Counters
-  const elTotal = document.getElementById('home-kti-total');
-  const elLolos = document.getElementById('home-kti-lolos');
-  const elRevisi = document.getElementById('home-kti-revisi');
-  const elTidakLolos = document.getElementById('home-kti-tidak-lolos');
-
-  if (elTotal) animateCounter(elTotal, total);
-  if (elLolos) animateCounter(elLolos, lolos);
-  if (elRevisi) animateCounter(elRevisi, revisi);
-  if (elTidakLolos) animateCounter(elTidakLolos, tidakLolos);
-
-  // Percentages
-  const elLolosPct = document.getElementById('home-kti-lolos-pct');
-  const elRevisiPct = document.getElementById('home-kti-revisi-pct');
-  const elTidakLolosPct = document.getElementById('home-kti-tidak-lolos-pct');
-  const elAvg = document.getElementById('home-kti-avg');
-
-  if (elLolosPct) elLolosPct.textContent = `${total ? ((lolos / total) * 100).toFixed(1) : 0}% dari total`;
-  if (elRevisiPct) elRevisiPct.textContent = `${total ? ((revisi / total) * 100).toFixed(1) : 0}% dari total`;
-  if (elTidakLolosPct) elTidakLolosPct.textContent = `${total ? ((tidakLolos / total) * 100).toFixed(1) : 0}% dari total`;
-  if (elAvg) elAvg.textContent = `${avgSim}%`;
-
-  // Render Doughnut Chart for Status
-  const canvasStatus = document.getElementById('chart-home-kti-status');
-  if (canvasStatus) {
-    if (homeCharts.ktiStatus) homeCharts.ktiStatus.destroy();
-    homeCharts.ktiStatus = createDoughnutChart(
-      canvasStatus.getContext('2d'),
-      ['Lolos', 'Revisi', 'Tidak Lolos', 'Proses / lainnya'],
-      [lolos, revisi, tidakLolos, total - lolos - revisi - tidakLolos],
-      ['rgba(16,185,129,0.85)', 'rgba(245,158,11,0.85)', 'rgba(244,63,94,0.85)', '#94a3b8']
-    );
+  document.getElementById('home-kti-avg').textContent = ktiData && ktiData.avgSim !== '—' ? ktiData.avgSim + '%' : '—';
+  for (const key of ['scored', 'unscored']) {
+    document.getElementById('home-kti-' + key + '-pct').textContent = ktiData?.totalPengajuan ? ((ktiData[key] / ktiData.totalPengajuan) * 100).toFixed(1) + '% dari total' : '—';
   }
-
-  // Render Bar Chart for Distribution
-  const canvasDist = document.getElementById('chart-home-kti-dist');
-  if (canvasDist) {
-    if (homeCharts.ktiDist) homeCharts.ktiDist.destroy();
-
-    const buckets = ['0–10%', '11–20%', '21–30%', '31–40%', '41–50%', '51–60%', '61–70%', '71–80%', '81–100%'];
-    const counts = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-    const bgColors = [
-      'rgba(16,185,129,0.7)', 'rgba(16,185,129,0.7)', 'rgba(16,185,129,0.7)',
-      'rgba(245,158,11,0.7)', 'rgba(245,158,11,0.7)',
-      'rgba(244,63,94,0.7)', 'rgba(244,63,94,0.7)', 'rgba(244,63,94,0.7)', 'rgba(244,63,94,0.7)'
-    ];
-
-    (ktiData.processed || []).forEach(d => {
-      const s = d.similarity;
-      if (!Number.isFinite(s)) return;
-      if (s <= 10) counts[0]++;
-      else if (s <= 20) counts[1]++;
-      else if (s <= 30) counts[2]++;
-      else if (s <= 40) counts[3]++;
-      else if (s <= 50) counts[4]++;
-      else if (s <= 60) counts[5]++;
-      else if (s <= 70) counts[6]++;
-      else if (s <= 80) counts[7]++;
-      else counts[8]++;
-    });
-
-    homeCharts.ktiDist = new Chart(canvasDist.getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels: buckets,
-        datasets: [{
-          label: 'Jumlah KTI',
-          data: counts,
-          backgroundColor: bgColors,
-          borderRadius: 6,
-        }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              afterLabel: (item) => {
-                const tot = counts.reduce((a, b) => a + b, 0);
-                const pct = tot ? ((item.raw / tot) * 100).toFixed(1) : 0;
-                return `(${pct}% dari total)`;
-              },
-            },
-          },
-        },
-        scales: {
-          y: { beginAtZero: true, ticks: { precision: 0 } },
-          x: { ticks: { font: { size: 10 } } },
-        },
-      },
-    });
-  }
+  container.style.display = ktiData?.totalPengajuan ? 'block' : 'none';
+  empty.style.display = ktiData?.totalPengajuan ? 'none' : 'flex';
+  if (homeCharts.ktiDist) homeCharts.ktiDist.destroy();
+  if (!ktiData?.totalPengajuan) return;
+  const distribution = similarityDistribution(ktiData.processed);
+  homeCharts.ktiDist = new Chart(document.getElementById('chart-home-kti-dist').getContext('2d'), {
+    type: 'bar', data: { labels: distribution.labels, datasets: [{ label: 'Jumlah Pemeriksaan', data: distribution.counts, backgroundColor: CHART_COLORS_ALPHA.indigo, borderRadius: 6 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+  });
 }
 
 function renderTopJournalsChart(ejData) {

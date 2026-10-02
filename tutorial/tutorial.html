@@ -177,7 +177,7 @@
           <h3>Uji Similaritas KTI</h3>
           <p>Penghubung juga mengenali Details Report enam kolom: User first name, User last name, User email, Date processed, Words count, dan Similarity score. Pertahankan header aslinya saat diimpor ke Google Sheets. Laporan ini menyediakan tanggal, nama pengguna, dan skor, tetapi tidak memuat NIM atau judul KTI; dashboard menandai bagian tersebut sebagai tidak tersedia.</p>
           <p>Kolom A: tanggal; B: NIM; C: nama; E: jenis KTI; F: judul; G: similaritas; H: status opsional. Secara bawaan sheet pertama digunakan.</p>
-          <p>Similaritas dapat berupa angka 30, teks 30%, atau sel berformat persentase. Hasil kosong/tidak valid ditampilkan tanpa angka dan mendapat status Proses jika status belum diisi. Nilai 0% tetap dihitung sebagai hasil yang sah.</p>
+          <p>Similaritas dapat berupa angka 30, teks 30%, atau sel berformat persentase. Hasil kosong/tidak valid ditampilkan sebagai tidak tersedia. Nilai 0% tetap dihitung sebagai hasil yang sah.</p>
           <div class="highlight-box">Gunakan kode KTI terbaru dalam proyek ini agar sel persentase dan hasil kosong diproses dengan benar. Perbarui deployment setelah mengganti kodenya.</div>
         </section>
         <section class="tutorial-section" id="membaca">
@@ -187,8 +187,8 @@
             <li>Total penggunaan LSEG/STATA adalah jumlah catatan penggunaan. Pengguna unik dihitung dari NIP/NIM yang terisi, setelah filter diterapkan.</li>
             <li>Kategori pengguna mengikuti aturan awalan NIP/NIM yang ada: 19 untuk dosen, 3 atau 4 untuk mahasiswa, dan lainnya untuk identitas lain. Ini merupakan klasifikasi otomatis yang perlu diperiksa terhadap data sumber.</li>
             <li>Total aktivitas layanan menjumlahkan akses jurnal, catatan LSEG/STATA, dan pengajuan KTI. Angka ini bukan jumlah orang unik.</li>
-            <li>Status KTI yang diisi pada spreadsheet dipertahankan. Jika kosong, aturan aplikasi adalah ≤30% Lolos, >30–50% Revisi, dan >50% Tidak Lolos. Batas ini perlu disesuaikan bila kebijakan layanan berubah.</li>
-            <li>Rata-rata similaritas menghitung hasil numerik yang sah, termasuk 0%; hasil kosong dikecualikan. Grafik status tetap menyertakan pengajuan yang masih diproses atau berstatus lain.</li>
+            <li>Dashboard tidak menetapkan status kelulusan atau batas skor. Jumlah pemeriksaan mengikuti jumlah baris laporan.</li>
+            <li>Rata-rata similaritas menghitung hasil numerik yang sah, termasuk 0%; hasil kosong dikecualikan. Gunakan filter tahun dan bulan untuk melihat jumlah pemeriksaan serta rata-rata skor per periode. Baris tanpa tanggal yang valid tidak masuk ringkasan periode.</li>
           </ul>
         </section>
         <section class="tutorial-section" id="pembaruan">

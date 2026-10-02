@@ -24,6 +24,11 @@ Buka http://127.0.0.1:4173. Server pratinjau hanya menerima koneksi dari kompute
 - `tutorial/tutorial.html`: panduan penggunaan yang mengikuti implementasi saat ini.
 - `tests/regression.test.cjs`: pengujian aturan data dan cache tanpa koneksi ke sumber nyata.
 
+## Pembaruan 2 Oktober 2026
+
+- Status kelulusan, ambang 30%/50%, dan warna penilaian dihapus dari halaman KTI, ringkasan Home, serta ekspor. Apps Script tidak lagi menghasilkan status otomatis.
+- Filter tahun dan bulan memakai tanggal pemrosesan. Grafik jumlah pemeriksaan dan tabel rekap tersedia per tahun maupun per bulan. Rata-rata mengecualikan skor kosong; 0% tetap dihitung. Data tanpa tanggal valid tetap terlihat pada tampilan semua data dan jumlahnya dijelaskan.
+
 ## Pembaruan September 2026
 
 - Informasi program studi dan jenis KTI tidak ditampilkan pada menu Uji Similaritas KTI maupun ekspornya. Informasi prodi tetap tersedia pada filter, statistik, grafik, tabel, dan ekspor LSEG serta STATA. E-Journal tetap menggunakan laporan agregat jurnal yang tidak memuat rincian prodi. Pemetaan kolom sumber tetap dipertahankan untuk kompatibilitas laporan lama.
@@ -31,7 +36,7 @@ Buka http://127.0.0.1:4173. Server pratinjau hanya menerima koneksi dari kompute
 - Status setiap sumber membedakan hasil baru, cache, cache lama saat gagal, dan sumber tidak tersedia. Waktu yang ditampilkan adalah waktu pengambilan, bukan waktu membuka halaman.
 - Tombol Perbarui data mengambil langsung dari sumber. Cache berlaku 30 menit dan dikaitkan dengan URL sumber; respons error tidak disimpan sebagai data.
 - Jumlah baris LSEG/STATA disebut total penggunaan. Jumlah pengguna unik dengan NIP/NIM terisi ditampilkan terpisah pada halaman detail.
-- Home dan halaman KTI memakai aturan normalisasi yang sama. Hasil kosong/tidak valid berbeda dari 0%; 0% ikut rata-rata dan pengajuan tanpa hasil tidak otomatis Lolos.
+- Home dan halaman KTI memakai aturan normalisasi yang sama. Hasil kosong/tidak valid berbeda dari 0%; 0% ikut rata-rata dan baris tanpa hasil tidak diberi status kelulusan.
 - Laporan KTI enam kolom `Details_Report*.xlsx` dikenali berdasarkan header oleh penghubung terbaru. Frontend juga memulihkan pemetaan deployment lama apabila email, tanggal ISO, dan jumlah kata cocok dengan pola laporan tersebut. Kolom NIM/prodi/jenis/judul yang tidak tersedia ditandai demikian, tanpa dibuat-buat.
 - KTI membersihkan cache perhitungan ketika menerima data baru. Paginasi tetap dapat mengakses seluruh halaman.
 - Ekspor CSV mengikuti semua filter aktif, dengan perlindungan terhadap formula dari teks sumber. Kolom identitas panjang sebaiknya diimpor sebagai teks di aplikasi spreadsheet.
@@ -51,7 +56,7 @@ Perubahan lokal pada Apps Script tidak otomatis mengubah deployment Google. Data
 
 Login yang ada merupakan gerbang akses di browser. Token sesi, hash sandi, dan token API tersedia di frontend; ini belum merupakan autentikasi server untuk data privat. Sebelum membuka dashboard ke publik, gunakan autentikasi dan otorisasi server atau pembatasan akses hosting serta API. Menghapus komentar sandi atau prefetch tidak menyelesaikan batas arsitektur ini. Tombol Keluar membersihkan empat cache layanan dari browser; menutup tab saja tidak membersihkan cache. Gunakan perangkat yang dipercaya.
 
-Kategori dosen/mahasiswa mengikuti aturan awalan NIP/NIM yang sudah ada, bukan verifikasi identitas. Status KTI eksplisit dari spreadsheet dipertahankan; status otomatis menggunakan batas aplikasi (≤30, >30–50, >50). Total aktivitas lintas layanan bukan pengguna unik dan bukan metrik yang seragam. Dashboard mengikuti timezone browser untuk pengelompokan tanggal.
+Kategori dosen/mahasiswa mengikuti aturan awalan NIP/NIM yang sudah ada, bukan verifikasi identitas. Dashboard KTI tidak menetapkan status kelulusan atau ambang skor. Jumlah pemeriksaan adalah jumlah baris laporan, bukan jumlah naskah atau pengguna unik. Filter tahun/bulan, grafik, dan ringkasan periode memakai tanggal pemrosesan; tanggal tidak valid dikecualikan dari ringkasan periode. Rata-rata hanya memakai skor numerik 0–100 yang tersedia. Total aktivitas lintas layanan bukan pengguna unik dan bukan metrik yang seragam. Dashboard mengikuti timezone browser untuk pengelompokan tanggal.
 
 ## Verifikasi
 

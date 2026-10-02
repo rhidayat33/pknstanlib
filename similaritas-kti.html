@@ -84,20 +84,8 @@
       font-size: 11.5px; font-weight: 700;
     }
     .similarity-badge .dot { width: 7px; height: 7px; border-radius: 50%; }
-    .similarity-badge.low { background: rgba(16,185,129,0.12); color: #059669; }
-    .similarity-badge.low .dot { background: #059669; }
-    .similarity-badge.medium { background: rgba(245,158,11,0.12); color: #d97706; }
-    .similarity-badge.medium .dot { background: #d97706; }
-    .similarity-badge.high { background: rgba(244,63,94,0.12); color: #e11d48; }
-    .similarity-badge.high .dot { background: #e11d48; }
-    .status-badge {
-      display: inline-block; padding: 2px 10px;
-      border-radius: 20px; font-size: 11px; font-weight: 600;
-    }
-    .status-badge.lolos { background: rgba(16,185,129,0.12); color: #059669; }
-    .status-badge.revisi { background: rgba(245,158,11,0.12); color: #d97706; }
-    .status-badge.tidak-lolos { background: rgba(244,63,94,0.12); color: #e11d48; }
-    .status-badge.proses { background: rgba(99,102,241,0.12); color: #6366f1; }
+    .similarity-badge { background:rgba(99,102,241,0.1); color:#6366f1; }
+    .similarity-badge .dot { background:#6366f1; }
     .avg-similarity-wrap {
       display: flex; flex-direction: column;
       align-items: center; justify-content: center; padding: 8px;
@@ -109,9 +97,8 @@
       background-clip: text; line-height: 1;
     }
     .avg-similarity-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; text-align: center; }
-    .threshold-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
-    .threshold-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
-    .threshold-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .kti-hero-badges { flex-wrap:wrap; }
+    @media(max-width:700px) { .kti-hero { flex-direction:column; align-items:flex-start; padding:20px; } .kti-hero-badges { width:100%; } .kti-hero-badge { flex:1; padding:12px; } }
   </style>
 </head>
 <body>
@@ -128,7 +115,7 @@
       <div class="page-header">
         <h1>Uji Similaritas KTI</h1>
         <p class="data-note" id="kti-source-note" hidden></p>
-        <p class="page-description">Layanan Uji Similaritas Karya Tulis Ilmiah PKN STAN — Monitoring &amp; analisis data pengajuan.</p>
+        <p class="page-description">Layanan Uji Similaritas Karya Tulis Ilmiah PKN STAN — Ringkasan jumlah pemeriksaan dan skor similaritas dari laporan sumber.</p>
         <button onclick="const p = document.getElementById('config-panel'); p.style.display = p.style.display === 'none' ? 'block' : 'none';" style="background: none; border: none; font-size: 12px; cursor: pointer; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; font-family: 'Inter', sans-serif;">
           <span>⚙️ Konfigurasi URL</span>
         </button>
@@ -154,17 +141,14 @@
       <div class="kti-hero" id="kti-hero" style="display:none;">
         <div class="kti-hero-text">
           <h2>📄 Layanan Uji Similaritas KTI</h2>
-          <p>Monitoring komprehensif pengajuan Uji Similaritas Karya Tulis Ilmiah mahasiswa PKN STAN. Data diperbarui secara berkala dari Google Sheets.</p>
+          <p>Ringkasan pemeriksaan berdasarkan tanggal pemrosesan dan skor similaritas yang tercatat dalam laporan.</p>
         </div>
         <div class="kti-hero-badges">
           <div class="kti-hero-badge">
             <div class="badge-num" id="hero-total">—</div>
-            <div class="badge-label">Total Pengajuan</div>
+            <div class="badge-label">Jumlah Pemeriksaan</div>
           </div>
-          <div class="kti-hero-badge">
-            <div class="badge-num" id="hero-lolos">—</div>
-            <div class="badge-label">Lolos</div>
-          </div>
+
           <div class="kti-hero-badge">
             <div class="badge-num" id="hero-avg">—</div>
             <div class="badge-label">Rata-rata</div>
@@ -177,17 +161,17 @@
         <div class="stat-card">
           <div class="stat-header"><div class="stat-icon violet">📄</div></div>
           <div class="stat-value" id="kti-total">0</div>
-          <div class="stat-label">Total Pengajuan</div>
+          <div class="stat-label">Jumlah Pemeriksaan</div>
         </div>
         <div class="stat-card">
-          <div class="stat-header"><div class="stat-icon green">✅</div></div>
-          <div class="stat-value" id="kti-lolos">0</div>
-          <div class="stat-label">Lolos</div>
+          <div class="stat-header"><div class="stat-icon violet">📊</div></div>
+          <div class="stat-value" id="kti-scored">0</div>
+          <div class="stat-label">Skor Tersedia</div>
         </div>
         <div class="stat-card">
-          <div class="stat-header"><div class="stat-icon amber">🔄</div></div>
-          <div class="stat-value" id="kti-revisi">0</div>
-          <div class="stat-label">Revisi</div>
+          <div class="stat-header"><div class="stat-icon violet">—</div></div>
+          <div class="stat-value" id="kti-unscored">0</div>
+          <div class="stat-label">Skor Tidak Tersedia</div>
         </div>
         <div class="stat-card">
           <div class="stat-header"><div class="stat-icon purple">📊</div></div>
@@ -206,14 +190,8 @@
         </div>
         
         <div class="filter-group">
-          <span class="filter-label">Status</span>
-          <select class="filter-select" id="kti-filter-status">
-            <option value="all">Semua Status</option>
-            <option value="Proses">Proses</option>
-            <option value="Lolos">Lolos</option>
-            <option value="Revisi">Revisi</option>
-            <option value="Tidak Lolos">Tidak Lolos</option>
-          </select>
+          <span class="filter-label">Bulan</span>
+          <select class="filter-select" id="kti-filter-month"><option value="all">Semua Bulan</option></select>
         </div>
       </div>
 
@@ -221,11 +199,11 @@
       <div class="charts-grid" id="kti-charts" style="display:none;">
 
         <!-- Tren Bulanan -->
-        <div class="chart-card full-width">
+        <div class="chart-card">
           <div class="chart-header">
             <div>
-              <div class="chart-title">Tren Pengajuan per Bulan</div>
-              <div class="chart-subtitle">Jumlah pengajuan uji similaritas secara periodik</div>
+              <div class="chart-title">Pemeriksaan per Bulan</div>
+              <div class="chart-subtitle">Dikelompokkan menurut bulan dan tahun tanggal pemrosesan</div>
             </div>
           </div>
           <div class="chart-container" style="height:300px;">
@@ -234,26 +212,9 @@
         </div>
         
 
-        <!-- Status Doughnut -->
-        <div class="chart-card full-width">
-          <div class="chart-header">
-            <div>
-              <div class="chart-title">Status Hasil</div>
-              <div class="chart-subtitle">Distribusi status uji similaritas</div>
-            </div>
-          </div>
-          <div class="chart-container" style="height:300px; position:relative;">
-            <canvas id="chart-kti-status"></canvas>
-            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center;">
-              <div id="donut-avg" style="font-size:22px; font-weight:800; color:var(--text-primary);">—</div>
-              <div style="font-size:10px; color:var(--text-muted);">Rata-rata</div>
-            </div>
-          </div>
-          <div class="threshold-legend">
-            <div class="threshold-item"><span class="threshold-dot" style="background:#10b981;"></span> Lolos (≤30%)</div>
-            <div class="threshold-item"><span class="threshold-dot" style="background:#f59e0b;"></span> Revisi (31–50%)</div>
-            <div class="threshold-item"><span class="threshold-dot" style="background:#f43f5e;"></span> Tidak Lolos (>50%)</div>
-          </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><div class="chart-title">Pemeriksaan per Tahun</div><div class="chart-subtitle">Jumlah baris laporan berdasarkan tahun pemrosesan</div></div></div>
+          <div class="chart-container" style="height:280px;"><canvas id="chart-kti-yearly"></canvas></div>
         </div>
 
         <!-- Distribusi Similaritas -->
@@ -261,7 +222,7 @@
           <div class="chart-header">
             <div>
               <div class="chart-title">Distribusi Persentase Similaritas</div>
-              <div class="chart-subtitle">Sebaran nilai similaritas seluruh pengajuan</div>
+              <div class="chart-subtitle">Jumlah pemeriksaan dalam tiap rentang skor yang tersedia</div>
             </div>
           </div>
           <div class="chart-container" style="height:300px;">
@@ -272,11 +233,18 @@
 
       </div>
 
+      <div class="table-card" id="kti-period-card" style="display:none;">
+        <div class="table-header"><div class="table-title">Ringkasan per Periode</div>
+          <select class="filter-select" id="kti-period-view" aria-label="Tampilan ringkasan periode"><option value="year">Per Tahun</option><option value="month">Per Bulan</option></select>
+        </div>
+        <div class="table-wrapper" style="max-height:420px;overflow-y:auto;"><table class="data-table"><thead><tr><th>Periode</th><th>Pemeriksaan</th><th>Skor Tersedia</th><th>Skor Tidak Tersedia</th><th>Rata-rata Similaritas</th></tr></thead><tbody id="kti-period-body"></tbody></table></div>
+      </div>
+
       <!-- Data Table -->
       <div class="table-card" id="kti-table-card" style="display:none;">
         <div class="table-header">
-          <div class="table-title">Data Pengajuan Uji Similaritas KTI</div>
-          <input type="text" id="kti-search" placeholder="🔍 Cari NIM / Nama / Judul..." oninput="onKtiSearch()" style="
+          <div class="table-title">Data Pemeriksaan Uji Similaritas KTI</div>
+          <input type="text" id="kti-search" placeholder="🔍 Cari nama pengguna..." oninput="onKtiSearch()" style="
             padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border-color);
             font-size: 13px; font-family:'Inter',sans-serif; background: rgba(255,255,255,0.8);
             color: var(--text-primary); width: 260px; outline:none;
@@ -287,12 +255,9 @@
             <thead>
               <tr>
                 <th>No</th>
-                <th>Tanggal</th>
-                <th>NIM</th>
-                <th>Nama</th>
-                <th>Judul</th>
+                <th>Tanggal Pemrosesan</th>
+                <th>Nama Pengguna</th>
                 <th>% Similaritas</th>
-                <th>Status</th>
               </tr>
             </thead>
             <tbody id="kti-table-body"></tbody>

@@ -39,10 +39,10 @@ function exportCurrentData(key) {
   } else {
     const fields = key === 'lseg' ? ['nipnim', 'prodi', 'tanggal', 'tujuan']
       : key === 'stata' ? ['nama', 'nipnim', 'prodi', 'timestamp', 'kebutuhan']
-      : ['timestamp', 'nim', 'nama', 'judul', 'similarity', 'status'];
+      : ['timestamp', 'nama', 'similarity'];
     headers = key === 'lseg' ? ['NIP/NIM', 'Prodi', 'Tanggal', 'Tujuan']
       : key === 'stata' ? ['Nama', 'NIP/NIM', 'Prodi/Unit', 'Tanggal', 'Kebutuhan']
-      : ['Tanggal', 'NIM', 'Nama', 'Judul', 'Similaritas (%)', 'Status'];
+      : ['Tanggal', 'Nama Pengguna', 'Similaritas (%)'];
     rows = getFilteredData().map(row => fields.map(field => row[field]));
   }
   if (!rows.length) return showToast('Tidak ada data untuk filter yang dipilih', 'info');

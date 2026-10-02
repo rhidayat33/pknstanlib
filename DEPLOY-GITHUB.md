@@ -1,6 +1,6 @@
 # Deploy ke GitHub Pages
 
-Paket versi 27 September 2026, disalin dari dashboard terbaru. Halaman `index.html` sudah berada di akar paket. Tidak memerlukan npm install atau proses build.
+Paket versi 2 Oktober 2026, disalin dari dashboard terbaru. Halaman `index.html` sudah berada di akar paket. Tidak memerlukan npm install atau proses build.
 
 ## Langkah pemasangan
 
@@ -36,4 +36,8 @@ Login masih berbasis browser dan token API berada dalam kode frontend. Ini bukan
 
 ## Verifikasi paket
 
-Sebelas pengujian regresi lulus. Pemeriksaan sintaks JavaScript serta keberadaan tautan dan aset lokal lulus.
+Tiga belas pengujian regresi lulus. Pemeriksaan sintaks JavaScript serta keberadaan tautan dan aset lokal lulus.
+
+## Pembaruan KTI 2 Oktober 2026
+
+Kategori kelulusan otomatis dihapus. Dashboard hanya menghitung baris pemeriksaan dan skor yang tersedia. Filter serta rekap per tahun/bulan memakai tanggal pemrosesan. Penghubung Apps Script terbaru tidak lagi menyimpulkan status dari skor.

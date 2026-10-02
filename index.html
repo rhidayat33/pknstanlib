@@ -145,7 +145,7 @@
         </span>
       </div>
 
-      <p class="data-note">Total aktivitas menggabungkan akses jurnal, catatan penggunaan LSEG/STATA, dan pengajuan KTI; bukan jumlah pengguna unik.</p>
+      <p class="data-note">Total aktivitas menggabungkan akses jurnal, catatan penggunaan LSEG/STATA, dan baris pemeriksaan KTI; bukan jumlah pengguna unik.</p>
       <!-- Summary Stats -->
       <div class="stats-grid" id="stats-grid">
         <div class="stat-card clickable" onclick="window.location.href='ejournal.html'" id="stat-ejournal">
@@ -176,7 +176,7 @@
               style="background:rgba(139,92,246,0.12);color:#7c3aed;display:none;">Rerata —%</span>
           </div>
           <div class="stat-value" id="stat-kti-val">—</div>
-          <div class="stat-label">Total Pengajuan KTI</div>
+          <div class="stat-label">Jumlah Pemeriksaan KTI</div>
         </div>
         <div class="stat-card" id="stat-total">
           <div class="stat-header">
@@ -218,8 +218,7 @@
                   style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: rgba(139,92,246,0.15); color: #7c3aed; font-size: 18px;">📄</span>
                 Rangkuman Data Uji Similaritas KTI
               </div>
-              <div class="chart-subtitle" style="margin-top: 4px;">Monitoring status kelolosan, rata-rata similarity,
-                dan sebaran pengajuan Karya Tulis Ilmiah</div>
+              <div class="chart-subtitle" style="margin-top: 4px;">Jumlah pemeriksaan, ketersediaan skor, dan sebaran similaritas</div>
             </div>
             <a href="similaritas-kti.html"
               style="background: rgba(139,92,246,0.1); color: #7c3aed; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease;">
@@ -234,43 +233,32 @@
               style="background: rgba(139,92,246,0.06); border: 1px solid rgba(139,92,246,0.15); border-radius: 12px; padding: 14px 16px;">
               <div
                 style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
-                Total Pengajuan</div>
+                Jumlah Pemeriksaan</div>
               <div style="font-size: 24px; font-weight: 800; color: #7c3aed; margin-top: 4px;" id="home-kti-total">—
               </div>
-              <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Karya Tulis Ilmiah</div>
+              <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Baris laporan sumber</div>
             </div>
 
             <div
-              style="background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.15); border-radius: 12px; padding: 14px 16px;">
+              style="background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.15); border-radius: 12px; padding: 14px 16px;">
               <div
                 style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
-                Lolos (≤30%)</div>
-              <div style="font-size: 24px; font-weight: 800; color: #059669; margin-top: 4px;" id="home-kti-lolos">—
+                Skor Tersedia</div>
+              <div style="font-size: 24px; font-weight: 800; color: #6366f1; margin-top: 4px;" id="home-kti-scored">—
               </div>
-              <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;" id="home-kti-lolos-pct">— %
+              <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;" id="home-kti-scored-pct">— %
                 dari total</div>
             </div>
 
             <div
-              style="background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.15); border-radius: 12px; padding: 14px 16px;">
+              style="background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.15); border-radius: 12px; padding: 14px 16px;">
               <div
                 style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
-                Revisi (31–50%)</div>
-              <div style="font-size: 24px; font-weight: 800; color: #d97706; margin-top: 4px;" id="home-kti-revisi">—
+                Skor Tidak Tersedia</div>
+              <div style="font-size: 24px; font-weight: 800; color: #6366f1; margin-top: 4px;" id="home-kti-unscored">—
               </div>
-              <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;" id="home-kti-revisi-pct">— %
+              <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;" id="home-kti-unscored-pct">— %
                 dari total</div>
-            </div>
-
-            <div
-              style="background: rgba(244,63,94,0.06); border: 1px solid rgba(244,63,94,0.15); border-radius: 12px; padding: 14px 16px;">
-              <div
-                style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
-                Tidak Lolos (>50%)</div>
-              <div style="font-size: 24px; font-weight: 800; color: #e11d48; margin-top: 4px;"
-                id="home-kti-tidak-lolos">—</div>
-              <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;"
-                id="home-kti-tidak-lolos-pct">— % dari total</div>
             </div>
 
             <div
@@ -285,32 +273,10 @@
             </div>
           </div>
 
-          <!-- 2 Column Charts Container -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;"
-            id="home-kti-charts-container">
-            <!-- Donut Status -->
-            <div
-              style="background: var(--bg-secondary); border-radius: 12px; padding: 18px; border: 1px solid var(--border-color);">
-              <div style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px;">Distribusi
-                Hasil Uji Similaritas</div>
-              <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">Persentase Lolos, Revisi, dan
-                Tidak Lolos</div>
-              <div class="chart-container" style="height: 250px;">
-                <canvas id="chart-home-kti-status"></canvas>
-              </div>
-            </div>
-
-            <!-- Bar Distribution -->
-            <div
-              style="background: var(--bg-secondary); border-radius: 12px; padding: 18px; border: 1px solid var(--border-color);">
-              <div style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px;">Sebaran
-                Persentase Similaritas</div>
-              <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">Jumlah pengajuan KTI
-                berdasarkan rentang %</div>
-              <div class="chart-container" style="height: 250px;">
-                <canvas id="chart-home-kti-dist"></canvas>
-              </div>
-            </div>
+          <div id="home-kti-charts-container">
+            <div class="chart-title">Sebaran Skor Similaritas</div>
+            <p class="chart-subtitle">Jumlah baris laporan dalam tiap rentang skor</p>
+            <div class="chart-container" style="height:250px;"><canvas id="chart-home-kti-dist"></canvas></div>
           </div>
 
           <div class="empty-state" id="home-kti-empty" style="display:none;">
@@ -382,7 +348,7 @@
           <div class="stat-icon" style="background:rgba(139,92,246,0.12);color:#7c3aed; margin-bottom:12px;">📄</div>
           <div style="font-size:15px; font-weight:700; color:var(--text-primary); margin-bottom:6px;">Uji Similaritas
             KTI</div>
-          <div style="font-size:12px; color:var(--text-muted);">Monitoring pengajuan uji similaritas Karya Tulis Ilmiah
+          <div style="font-size:12px; color:var(--text-muted);">Jumlah pemeriksaan dan skor similaritas dari laporan
           </div>
         </a>
       </div>
