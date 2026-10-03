@@ -1,6 +1,6 @@
 # Deploy ke GitHub Pages
 
-Paket versi 2 Oktober 2026, disalin dari dashboard terbaru. Halaman `index.html` sudah berada di akar paket. Tidak memerlukan npm install atau proses build.
+Paket versi 3 Oktober 2026, disalin dari dashboard terbaru. Halaman `index.html` sudah berada di akar paket. Tidak memerlukan npm install atau proses build.
 
 ## Langkah pemasangan
 
@@ -41,3 +41,7 @@ Tiga belas pengujian regresi lulus. Pemeriksaan sintaks JavaScript serta keberad
 ## Pembaruan KTI 2 Oktober 2026
 
 Kategori kelulusan otomatis dihapus. Dashboard hanya menghitung baris pemeriksaan dan skor yang tersedia. Filter serta rekap per tahun/bulan memakai tanggal pemrosesan. Penghubung Apps Script terbaru tidak lagi menyimpulkan status dari skor.
+
+## Pembaruan 3 Oktober 2026
+
+Keterangan skor tersedia/tidak tersedia dihapus. Sesuai permintaan, baris tanpa skor dikelompokkan ke 0–10% pada grafik KTI dan Home. Nilai skor asli tetap dipertahankan; rata-rata dihitung dari skor numerik yang ada.

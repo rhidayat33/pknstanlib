@@ -215,7 +215,9 @@ test('KTI periods and filters handle multiple years, zero scores, missing dates 
   elements['kti-filter-month'].value = '3';
   assert.equal(c.getFilteredData().length, 0);
   const distribution = c.similarityDistribution([0,10,10.5,20,90,90.1,100,null].map(similarity => ({similarity})));
-  assert.deepEqual(Array.from(distribution.counts), [2,2,0,0,0,0,0,0,1,2]);
+  assert.deepEqual(Array.from(distribution.counts), [3,2,0,0,0,0,0,0,1,2]);
+  assert.equal(distribution.counts.reduce((a, b) => a + b, 0), 8);
+  assert.equal(c.averageSimilarity([{similarity:10}, {similarity:null}]), '10.0');
 });
 
 test('KTI export omits inferred statuses and unavailable form fields', async () => {

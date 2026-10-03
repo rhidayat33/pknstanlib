@@ -98,6 +98,7 @@
     }
     .avg-similarity-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; text-align: center; }
     .kti-hero-badges { flex-wrap:wrap; }
+    #kti-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
     @media(max-width:700px) { .kti-hero { flex-direction:column; align-items:flex-start; padding:20px; } .kti-hero-badges { width:100%; } .kti-hero-badge { flex:1; padding:12px; } }
   </style>
 </head>
@@ -164,16 +165,6 @@
           <div class="stat-label">Jumlah Pemeriksaan</div>
         </div>
         <div class="stat-card">
-          <div class="stat-header"><div class="stat-icon violet">📊</div></div>
-          <div class="stat-value" id="kti-scored">0</div>
-          <div class="stat-label">Skor Tersedia</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-header"><div class="stat-icon violet">—</div></div>
-          <div class="stat-value" id="kti-unscored">0</div>
-          <div class="stat-label">Skor Tidak Tersedia</div>
-        </div>
-        <div class="stat-card">
           <div class="stat-header"><div class="stat-icon purple">📊</div></div>
           <div class="avg-similarity-wrap">
             <div class="avg-similarity-value" id="kti-avg-similarity">0%</div>
@@ -222,7 +213,7 @@
           <div class="chart-header">
             <div>
               <div class="chart-title">Distribusi Persentase Similaritas</div>
-              <div class="chart-subtitle">Jumlah pemeriksaan dalam tiap rentang skor yang tersedia</div>
+              <div class="chart-subtitle">Jumlah pemeriksaan dalam tiap kelompok persentase</div>
             </div>
           </div>
           <div class="chart-container" style="height:300px;">
@@ -237,7 +228,7 @@
         <div class="table-header"><div class="table-title">Ringkasan per Periode</div>
           <select class="filter-select" id="kti-period-view" aria-label="Tampilan ringkasan periode"><option value="year">Per Tahun</option><option value="month">Per Bulan</option></select>
         </div>
-        <div class="table-wrapper" style="max-height:420px;overflow-y:auto;"><table class="data-table"><thead><tr><th>Periode</th><th>Pemeriksaan</th><th>Skor Tersedia</th><th>Skor Tidak Tersedia</th><th>Rata-rata Similaritas</th></tr></thead><tbody id="kti-period-body"></tbody></table></div>
+        <div class="table-wrapper" style="max-height:420px;overflow-y:auto;"><table class="data-table"><thead><tr><th>Periode</th><th>Pemeriksaan</th><th>Rata-rata Similaritas</th></tr></thead><tbody id="kti-period-body"></tbody></table></div>
       </div>
 
       <!-- Data Table -->

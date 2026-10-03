@@ -24,6 +24,10 @@ Buka http://127.0.0.1:4173. Server pratinjau hanya menerima koneksi dari kompute
 - `tutorial/tutorial.html`: panduan penggunaan yang mengikuti implementasi saat ini.
 - `tests/regression.test.cjs`: pengujian aturan data dan cache tanpa koneksi ke sumber nyata.
 
+## Pembaruan 3 Oktober 2026
+
+- Kartu dan kolom skor tersedia/tidak tersedia dihapus dari KTI serta Home. Sesuai permintaan, baris tanpa skor masuk kelompok 0–10% pada grafik distribusi. Nilai mentah tetap kosong dan tidak dimasukkan ke rata-rata.
+
 ## Pembaruan 2 Oktober 2026
 
 - Status kelulusan, ambang 30%/50%, dan warna penilaian dihapus dari halaman KTI, ringkasan Home, serta ekspor. Apps Script tidak lagi menghasilkan status otomatis.

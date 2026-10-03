@@ -75,16 +75,13 @@ function onKtiSearch() { ktiSearchQuery = document.getElementById('kti-search').
 function renderAll() {
   const data = getFilteredData();
   KTI_SECTIONS.forEach(id => document.getElementById(id).style.display = '');
-  const scored = data.filter(row => Number.isFinite(row.similarity)).length;
   const missingDates = data.filter(row => !parseDate(row.timestamp)).length;
   const average = averageSimilarity(data);
   const averageLabel = average === null ? '—' : average + '%';
   const note = document.getElementById('kti-source-note');
   note.hidden = false;
-  note.textContent = 'Satu baris laporan dihitung sebagai satu pemeriksaan. Rata-rata memakai ' + scored + ' skor numerik yang tersedia. ' + missingDates + ' baris tanpa tanggal valid tidak masuk grafik dan rekap periode.';
+  note.textContent = 'Satu baris laporan dihitung sebagai satu pemeriksaan. ' + missingDates + ' baris tanpa tanggal valid tidak masuk grafik dan rekap periode.';
   animateCounter(document.getElementById('kti-total'), data.length);
-  animateCounter(document.getElementById('kti-scored'), scored);
-  animateCounter(document.getElementById('kti-unscored'), data.length - scored);
   document.getElementById('kti-avg-similarity').textContent = averageLabel;
   document.getElementById('hero-total').textContent = formatNumberFull(data.length);
   document.getElementById('hero-avg').textContent = averageLabel;
@@ -108,7 +105,7 @@ function renderPeriodChart(data, granularity, id) {
 }
 function renderPeriodTable(data) {
   const groups = summarizeKTIPeriods(data, document.getElementById('kti-period-view').value);
-  document.getElementById('kti-period-body').innerHTML = groups.map(group => '<tr><td>' + escapeHTML(group.label) + '</td><td>' + formatNumberFull(group.total) + '</td><td>' + formatNumberFull(group.scored) + '</td><td>' + formatNumberFull(group.total - group.scored) + '</td><td>' + (group.average === null ? '—' : group.average + '%') + '</td></tr>').join('') || '<tr><td colspan="5" class="table-empty">Tidak ada data bertanggal valid untuk periode ini.</td></tr>';
+  document.getElementById('kti-period-body').innerHTML = groups.map(group => '<tr><td>' + escapeHTML(group.label) + '</td><td>' + formatNumberFull(group.total) + '</td><td>' + (group.average === null ? '—' : group.average + '%') + '</td></tr>').join('') || '<tr><td colspan="3" class="table-empty">Tidak ada data bertanggal valid untuk periode ini.</td></tr>';
 }
 function renderTable(data) {
   const pages = Math.ceil(data.length / KTI_PAGE_SIZE);

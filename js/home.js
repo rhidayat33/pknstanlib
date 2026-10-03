@@ -594,14 +594,11 @@ function renderOverviewChart(ejData, lsegData, stataData, ktiData) {
 function renderHomeKTISummary(ktiData) {
   const container = document.getElementById('home-kti-charts-container');
   const empty = document.getElementById('home-kti-empty');
-  for (const [id, value] of [['home-kti-total', ktiData?.totalPengajuan], ['home-kti-scored', ktiData?.scored], ['home-kti-unscored', ktiData?.unscored]]) {
+  for (const [id, value] of [['home-kti-total', ktiData?.totalPengajuan]]) {
     const el = document.getElementById(id);
     if (el) { if (value === undefined) el.textContent = '—'; else animateCounter(el, value); }
   }
   document.getElementById('home-kti-avg').textContent = ktiData && ktiData.avgSim !== '—' ? ktiData.avgSim + '%' : '—';
-  for (const key of ['scored', 'unscored']) {
-    document.getElementById('home-kti-' + key + '-pct').textContent = ktiData?.totalPengajuan ? ((ktiData[key] / ktiData.totalPengajuan) * 100).toFixed(1) + '% dari total' : '—';
-  }
   container.style.display = ktiData?.totalPengajuan ? 'block' : 'none';
   empty.style.display = ktiData?.totalPengajuan ? 'none' : 'flex';
   if (homeCharts.ktiDist) homeCharts.ktiDist.destroy();

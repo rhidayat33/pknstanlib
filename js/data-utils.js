@@ -70,7 +70,8 @@ function summarizeKTIPeriods(rows, granularity = 'month') {
 function similarityDistribution(rows) {
   const counts = Array(10).fill(0);
   for (const row of rows) {
-    if (!Number.isFinite(row.similarity)) continue;
+    // Requested display grouping; the raw score and numeric average stay unchanged.
+    if (!Number.isFinite(row.similarity)) { counts[0]++; continue; }
     counts[Math.max(0, Math.min(9, Math.ceil(row.similarity / 10) - 1))]++;
   }
   return { labels: ['0–10%', '>10–20%', '>20–30%', '>30–40%', '>40–50%', '>50–60%', '>60–70%', '>70–80%', '>80–90%', '>90–100%'], counts };
